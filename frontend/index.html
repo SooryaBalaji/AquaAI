@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AquaIQ — know your water</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/styles.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tensorflow/4.15.0/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.1/dist/mobilenet.min.js"></script>
+</head>
+<body>
+
+<div class="layout">
+  <nav>
+    <div class="brand"><h1>AquaIQ</h1><span>San Jose, CA &middot; household demo</span></div>
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="dashboard"><span class="tab-icon">◔</span> Dashboard</button>
+      <button class="tab-btn" data-tab="leaks"><span class="tab-icon">⚠</span> Leak Detective</button>
+      <button class="tab-btn" data-tab="forecast"><span class="tab-icon">↝</span> Forecast &amp; Savings</button>
+      <button class="tab-btn" data-tab="report"><span class="tab-icon">◎</span> Report Waste</button>
+      <button class="tab-btn" data-tab="assistant"><span class="tab-icon">✦</span> Ask AquaIQ</button>
+    </div>
+  </nav>
+
+  <main>
+
+    <!-- DASHBOARD -->
+    <section class="page active" id="page-dashboard">
+      <div class="page-head">
+        <h2>Today's water use</h2>
+        <p>A live read of your household's usage against its daily budget, with an AI check for anything unusual.</p>
+      </div>
+      <div id="dash-banner"></div>
+      <div class="row">
+        <div class="panel">
+          <h3>Usage so far today</h3>
+          <div class="hero-num"><span id="dash-total">—</span> <span style="font-size:20px;color:var(--gray)">gal</span></div>
+          <div class="hero-sub" id="dash-sub">against a <span id="dash-limit">—</span> gal daily budget</div>
+          <div class="gauge-track"><div class="gauge-fill" id="dash-gauge" style="width:0%"></div></div>
+        </div>
+        <div class="panel">
+          <h3>Water Score</h3>
+          <div class="score-ring" id="score-ring" style="--pct:0">
+            <div class="inner"><div class="v" id="score-val">—</div><div class="l">/ 100</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>Hourly breakdown</h3>
+        <canvas id="hourlyChart"></canvas>
+      </div>
+    </section>
+
+
+    <section class="page" id="page-leaks">
+      <div class="page-head">
+        <h2>Leak Detective</h2>
+        <p>An Isolation Forest model — trained on 60 days of this household's own 15-minute usage history — flags intervals that don't fit its learned normal, instead of relying on a fixed gallons-per-minute threshold.</p>
+      </div>
+      <div class="panel">
+        <h3>Flagged intervals</h3>
+        <table>
+          <thead><tr><th>Day</th><th>Hour</th><th>Gallons (15 min)</th><th>Anomaly score</th></tr></thead>
+          <tbody id="anomaly-rows"><tr><td colspan="4" class="loading">Loading model results…</td></tr></tbody>
+        </table>
+        <div class="model-note" id="model-note"></div>
+      </div>
+    </section>
+
+
+    <section class="page" id="page-forecast">
+      <div class="page-head">
+        <h2>Forecast &amp; Savings</h2>
+        <p>A 7-day projection corrected against the real National Weather Service forecast, plus how close this household is to Tier 2 pricing.</p>
+      </div>
+      <div id="forecast-banner"></div>
+      <div class="row">
+        <div class="panel">
+          <h3>7-day projected usage</h3>
+          <canvas id="forecastChart"></canvas>
+        </div>
+        <div class="panel">
+          <h3>Tier 1 budget</h3>
+          <div class="metric-grid" style="grid-template-columns:1fr">
+            <div class="metric"><div class="v" id="fc-used">—</div><div class="l">gallons used this month</div></div>
+            <div class="metric"><div class="v" id="fc-remaining">—</div><div class="l">gallons left in Tier 1</div></div>
+            <div class="metric"><div class="v" id="fc-bill">—</div><div class="l">projected month-end bill</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="panel">
+          <h3>Gallons &amp; dollars saved</h3>
+          <div class="metric-grid">
+            <div class="metric"><div class="v" id="sv-month">—</div><div class="l">saved this month vs. regional avg</div></div>
+            <div class="metric"><div class="v" id="sv-year">—</div><div class="l">projected annual gallons saved</div></div>
+            <div class="metric"><div class="v" id="sv-dollars">—</div><div class="l">projected annual $ saved</div></div>
+          </div>
+          <div class="badges-row" id="badges-row"></div>
+        </div>
+        <div class="panel">
+          <h3>What actually moves the needle</h3>
+          <ul class="tips" id="tips-list"></ul>
+        </div>
+      </div>
+    </section>
+
+    <section class="page" id="page-report">
+      <div class="page-head">
+        <h2>Report public water waste</h2>
+        <p>Spot a broken sprinkler or open hydrant? Upload a photo — a MobileNetV2 neural network classifies it entirely in your browser, no image ever leaves your device — and AquaIQ drafts the report for you.</p>
+      </div>
+      <div class="report-steps">
+        <div class="step">
+          <h4>1. Photo</h4>
+          <div class="drop" id="drop-zone">Click to choose a photo of the water waste</div>
+          <input type="file" id="file-input" accept="image/*" style="display:none">
+          <div id="cnn-result"></div>
+        </div>
+        <div class="step">
+          <h4>2. Location</h4>
+          <button class="pill" id="loc-btn">Use my current location</button>
+          <div id="loc-result" class="hero-sub" style="margin-top:8px"></div>
+        </div>
+        <div class="step">
+          <h4>3. Submit</h4>
+          <button class="pill" id="submit-btn" disabled>Generate report</button>
+          <div id="report-result"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ASK AQUAIQ -->
+    <section class="page" id="page-assistant">
+      <div class="page-head">
+        <h2>Ask AquaIQ</h2>
+        <p>A chat assistant grounded in this household's real usage data — it answers from your actual numbers, not a guess, and tells you when it's working offline.</p>
+      </div>
+      <div class="panel">
+        <div class="suggested">
+          <span class="chip">Why is my bill high?</span>
+          <span class="chip">Do I have any leaks?</span>
+          <span class="chip">How close am I to Tier 2?</span>
+          <span class="chip">How much have I saved?</span>
+        </div>
+        <div class="chat-window" id="chat-window">
+          <div class="msg bot">Ask me anything about your water use — I'll answer from your actual dashboard, forecast, and leak data.</div>
+        </div>
+        <form class="chat-input-row" id="chat-form">
+          <input type="text" id="chat-input" placeholder="Ask a question about your water use…" autocomplete="off">
+          <button class="pill" type="submit" style="margin-top:0">Send</button>
+        </form>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/dashboard.js"></script>
+<script src="js/leaks.js"></script>
+<script src="js/forecast.js"></script>
+<script src="js/report.js"></script>
+<script src="js/assistant.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
