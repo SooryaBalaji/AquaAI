@@ -1,4 +1,5 @@
-
+"""Category dictionary served to the browser-side CNN, and the report
+generator for the Report Waste tab."""
 
 import random
 from datetime import datetime
@@ -18,7 +19,7 @@ def build_civic_report(category, lat, lon):
     report_id = f"AQ-{datetime.now().strftime('%Y%m%d')}-{random.randint(1000, 9999)}"
 
     email_draft = (
-        f"Subject: Public Water Waste Report ({info['label']}) — Ref {report_id}\n\n"
+        f"Subject: Public Water Waste Report ({info['label']}), Ref {report_id}\n\n"
         f"A resident has reported {info['label']} at coordinates {lat}, {lon}, "
         f"estimated at {info['est_gal_per_min']} gallons/minute. "
         f"Severity: {info['severity']}. Please dispatch for inspection."
@@ -27,7 +28,7 @@ def build_civic_report(category, lat, lon):
         "service_code": "water_waste",
         "lat": lat,
         "long": lon,
-        "description": f"{info['label']} — estimated {info['est_gal_per_min']} gal/min",
+        "description": f"{info['label']}, estimated {info['est_gal_per_min']} gal/min",
         "media_url": None,
     }
     return {"report_id": report_id, "category": info, "email_draft": email_draft, "open311_payload": open311_payload}

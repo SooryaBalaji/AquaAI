@@ -1,4 +1,7 @@
+"""Household + billing constants, shared across modules."""
 
+# San Jose, CA is used as the default — swap for any California ZIP's
+# real coordinates and tiered-rate schedule.
 LATITUDE, LONGITUDE = 37.3382, -121.8863
 
 TIER_1_LIMIT_GAL = 4500       # monthly gallons before Tier 2 pricing kicks in

@@ -4,9 +4,15 @@ let userLat = null, userLon = null;
 
 async function ensureModel() {
   if (!mobilenetModel) {
-    document.getElementById('cnn-result').innerHTML = '<span class="loading">Loading MobileNetV2 in the browser…</span>';
+    document.getElementById('cnn-result').innerHTML = '<span class="loading">Loading MobileNetV2 in the browser</span>';
     mobilenetModel = await mobilenet.load();
   }
+}
+
+function severityTagClass(severity) {
+  if (severity === 'critical') return 'crit';
+  if (severity === 'high') return 'high';
+  return 'med';
 }
 
 document.getElementById('drop-zone').addEventListener('click', () => document.getElementById('file-input').click());
@@ -30,9 +36,9 @@ document.getElementById('file-input').addEventListener('change', async (e) => {
   let html = `<p><b>Top match:</b> ${top.className} (${Math.round(top.probability * 100)}% confidence)</p>`;
   if (key) {
     const info = labels[key];
-    html += `<p><b>Classified as:</b> ${info.label} <span class="badge ${info.severity === 'critical' ? 'crit' : info.severity === 'high' ? 'high' : 'med'}">${info.severity}</span> — est. ${info.est_gal_per_min} gal/min</p>`;
+    html += `<p><b>Classified as:</b> ${info.label} <span class="tag ${severityTagClass(info.severity)}">${info.severity}</span>, est. ${info.est_gal_per_min} gal/min</p>`;
   } else {
-    html += `<p>No specific water-waste category matched — you can still submit a general report.</p>`;
+    html += `<p>No specific water waste category matched. You can still submit a general report.</p>`;
   }
   document.getElementById('cnn-result').innerHTML = html;
   maybeEnableSubmit();
@@ -49,7 +55,7 @@ document.getElementById('loc-btn').addEventListener('click', () => {
     document.getElementById('loc-result').textContent = `Location captured: ${userLat}, ${userLon}`;
     maybeEnableSubmit();
   }, () => {
-    document.getElementById('loc-result').textContent = 'Could not get location — you can still submit without it.';
+    document.getElementById('loc-result').textContent = 'Could not get location. You can still submit without it.';
   });
 });
 

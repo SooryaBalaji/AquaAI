@@ -1,0 +1,30 @@
+@font-face{font-family:'Sora';src:url('../fonts/sora-latin-wght-normal.woff2') format('woff2');font-weight:100 800;font-display:swap}
+@font-face{font-family:'Inter';src:url('../fonts/inter-latin-wght-normal.woff2') format('woff2');font-weight:100 900;font-display:swap}
+:root{
+  --ink:#13233B;
+  --graphite:#40506A;
+  --paper:#FFFDF7;
+  --cream:#FFF8E8;
+  --sky:#9EDCFF;
+  --sky-deep:#59B9EC;
+  --sky-pale:#E7F8FF;
+  --violet:#7056DD;
+  --violet-dark:#503EB0;
+  --sun:#FFD166;
+  --leaf:#55C98A;
+  --leaf-dark:#268263;
+  --coral:#FF8FA3;
+  --coral-dark:#C2415D;
+  --outline:#294C62;
+  --bg:var(--paper);
+  --sub:var(--graphite);
+  --line:rgba(41,76,98,.18);
+  --panel:#fff;
+  --gold-tint:#FFF1CC;
+  --rust:#C2415D;
+  --rust-tint:#FFE3E8;
+  --leaf-tint:#DDF5E8;
+  --font-display:'Sora','Avenir Next','Segoe UI',sans-serif;
+  --font-body:'Inter','Avenir Next','Segoe UI',sans-serif;
+  --font-accent:Georgia,'Times New Roman',serif;
+}

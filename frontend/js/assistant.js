@@ -2,7 +2,13 @@ function addMessage(text, who, src) {
   const win = document.getElementById('chat-window');
   const div = document.createElement('div');
   div.className = 'msg ' + who;
-  div.innerHTML = text + (src ? `<span class="src">${src}</span>` : '');
+  div.textContent = text;
+  if (src) {
+    const tag = document.createElement('span');
+    tag.className = 'src';
+    tag.textContent = src;
+    div.appendChild(tag);
+  }
   win.appendChild(div);
   win.scrollTop = win.scrollHeight;
 }
@@ -16,7 +22,7 @@ async function askQuestion(question) {
   const thinking = document.createElement('div');
   thinking.className = 'msg bot loading';
   thinking.id = 'thinking-msg';
-  thinking.textContent = 'Thinking…';
+  thinking.textContent = 'Thinking';
   win.appendChild(thinking);
   win.scrollTop = win.scrollHeight;
 
@@ -27,7 +33,11 @@ async function askQuestion(question) {
   });
 
   document.getElementById('thinking-msg')?.remove();
-  addMessage(res.answer, 'bot', res.source === 'claude' ? 'Answered by Claude' : res.source);
+  if (res.error) {
+    addMessage(res.error, 'bot');
+    return;
+  }
+  addMessage(res.answer, 'bot', res.source === 'gemini' ? 'Answered by Gemini' : res.source);
 }
 
 document.getElementById('chat-form').addEventListener('submit', (e) => {
@@ -35,6 +45,6 @@ document.getElementById('chat-form').addEventListener('submit', (e) => {
   askQuestion(document.getElementById('chat-input').value);
 });
 
-document.querySelectorAll('.chip').forEach(chip => {
-  chip.addEventListener('click', () => askQuestion(chip.textContent));
+document.querySelectorAll('.suggest-btn').forEach(btn => {
+  btn.addEventListener('click', () => askQuestion(btn.textContent));
 });

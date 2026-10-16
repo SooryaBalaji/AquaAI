@@ -1,17 +1,23 @@
+"""
+Real call to the National Weather Service (api.weather.gov — free, no key
+required) used to weather-correct the 7-day usage forecast. Falls back to a
+seasonally reasonable synthetic forecast if the network call fails, so a
+live demo never breaks just because a judge's wifi blocks the request.
+"""
 
 import random
 from datetime import datetime
 
 import requests
 
-from config import DAYS_IN_MONTH, LATITUDE, LONGITUDE, TIER_1_LIMIT_GAL, TIER_1_RATE, TIER_2_RATE
+from config import DAYS_IN_MONTH, TIER_1_RATE, TIER_2_RATE
 
 
-def fetch_noaa_forecast(lat=LATITUDE, lon=LONGITUDE):
+def fetch_noaa_forecast(lat, lon):
     try:
         points = requests.get(
             f"https://api.weather.gov/points/{lat},{lon}",
-            headers={"User-Agent": "AquaIQ-CongressionalAppChallenge (student project)"},
+            headers={"User-Agent": "AquaAI (student project)"},
             timeout=5,
         ).json()
         forecast_url = points["properties"]["forecast"]
@@ -32,12 +38,12 @@ def fetch_noaa_forecast(lat=LATITUDE, lon=LONGITUDE):
         }
 
 
-def build_forecast(readings):
+def build_forecast(readings, lat, lon, tier1_limit_gal):
     daily_totals = [round(sum(r["gallons"] for r in readings if r["day"] == d), 1) for d in range(60)]
     recent_30 = daily_totals[-30:]
     avg_daily = sum(recent_30) / len(recent_30)
 
-    weather = fetch_noaa_forecast()
+    weather = fetch_noaa_forecast(lat, lon)
     highs = weather["daily_highs"]
 
     today_of_month = datetime.now().day
@@ -52,19 +58,19 @@ def build_forecast(readings):
         day_total = round(avg_daily * heat_multiplier, 1)
         running_total += day_total
         projected_daily.append({"day_offset": i + 1, "high_f": high, "gallons": day_total})
-        if breach_day is None and running_total > TIER_1_LIMIT_GAL:
+        if breach_day is None and running_total > tier1_limit_gal:
             breach_day = today_of_month + i + 1
 
     month_end_total = round(
         month_used_so_far + sum(d["gallons"] for d in projected_daily)
         + avg_daily * max(0, DAYS_IN_MONTH - today_of_month - 7), 1
     )
-    tier2_gallons = max(0, month_end_total - TIER_1_LIMIT_GAL)
-    bill_estimate = round(min(month_end_total, TIER_1_LIMIT_GAL) * TIER_1_RATE + tier2_gallons * TIER_2_RATE, 2)
+    tier2_gallons = max(0, month_end_total - tier1_limit_gal)
+    bill_estimate = round(min(month_end_total, tier1_limit_gal) * TIER_1_RATE + tier2_gallons * TIER_2_RATE, 2)
 
     tips = [
         "Shift lawn watering to before 6am to cut evaporation loss by up to 30%.",
-        "A running toilet can waste 200+ gallons a day — check for silent leaks with food coloring in the tank.",
+        "A running toilet can waste 200+ gallons a day. Check for silent leaks with food coloring in the tank.",
         "Shortening showers by 2 minutes saves roughly 5 gallons per shower.",
     ]
 
@@ -74,8 +80,8 @@ def build_forecast(readings):
         "month_used_so_far": round(month_used_so_far, 1),
         "projected_daily": projected_daily,
         "month_end_total_gallons": month_end_total,
-        "tier1_limit_gallons": TIER_1_LIMIT_GAL,
-        "gallons_to_tier2": max(0, TIER_1_LIMIT_GAL - month_used_so_far),
+        "tier1_limit_gallons": tier1_limit_gal,
+        "gallons_to_tier2": max(0, tier1_limit_gal - month_used_so_far),
         "tier_breach_day_of_month": breach_day,
         "bill_estimate_dollars": bill_estimate,
         "savings_tips": tips,

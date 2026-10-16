@@ -1,3 +1,8 @@
+"""
+Real anomaly detection: a scikit-learn Isolation Forest trained on this
+household's own 60 days of usage, so it learns what's normal *for this
+household* instead of applying a fixed gallons-per-minute threshold.
+"""
 
 import statistics
 
@@ -7,6 +12,7 @@ from config import RNG_SEED
 
 
 def engineer_features(readings):
+    """Turn each 15-min reading into the feature vector the model trains on."""
     by_hour = {}
     for r in readings:
         by_hour.setdefault(round(r["hour"]), []).append(r["gallons"])

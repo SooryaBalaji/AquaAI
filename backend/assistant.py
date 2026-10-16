@@ -1,12 +1,29 @@
+"""
+Ask AquaAI — a chat assistant users can ask plain-English questions like
+"why is my bill high?" or "am I going to hit Tier 2?"
+
+Design choice: the assistant is grounded. Instead of letting the model
+guess, every request packages this household's actual dashboard, forecast,
+anomaly, and savings data into the prompt, so answers are built from real
+numbers instead of being invented. This is a genuinely different kind of AI
+from the Isolation Forest and the CNN — a natural-language layer on top of
+the app's own analytics, not a third prediction model.
+
+If no ANTHROPIC_API_KEY is set (or the call fails for any reason — offline,
+rate limited, bad key), this falls back to a small rule-based answer
+generator built from the same real data, so a live demo never goes blank.
+"""
+
 import os
 
 import requests
 
-GEMINI_API_URL='https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent'
-MODEL = "gemini-3.8-flash" 
+ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
+MODEL = "claude-sonnet-5"  # see README if this model string changes
 
 
 def _context_summary(ctx):
+    """Turn the app's live data into a short, factual briefing for the model."""
     breach_day = ctx['forecast']['tier_breach_day_of_month']
     breach_line = (
         f"Tier 2 breach projected on day {breach_day} of the month.\n"
@@ -33,15 +50,16 @@ def _context_summary(ctx):
     )
 
 
-def _call_gemini(question, ctx):
-    api_key = os.environ.get("AI_MODEL_KEY")
+def _call_claude(question, ctx):
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
     if not api_key:
         return None
 
     system_prompt = (
-        "You are the in-app assistant for AquaIQ, a household water-intelligence app. "
+        f"You are the in-app assistant for AquaAI, a household water-intelligence app. "
+        f"You are answering for {ctx['profile_name']}. "
         "Answer the resident's question in 2-4 short sentences, in plain English, using "
-        "ONLY the household data below — never invent numbers that aren't given. "
+        "ONLY the household data below. Never invent numbers that aren't given. "
         "If the data doesn't cover what's asked, say so honestly.\n\n"
         f"HOUSEHOLD DATA:\n{_context_summary(ctx)}"
     )
@@ -69,6 +87,7 @@ def _call_gemini(question, ctx):
     except Exception:
         return None
 
+
 def _fallback_answer(question, ctx):
     """Rule-based answer built from the same real data, used when no API key
     is configured or the API call fails — so the demo never goes blank."""
@@ -94,7 +113,7 @@ def _fallback_answer(question, ctx):
     if "tier" in q or "budget" in q:
         return (
             f"You've used {f['month_used_so_far']} of your {f['tier1_limit_gallons']}-gallon "
-            f"Tier 1 budget this month — {f['gallons_to_tier2']} gallons remain."
+            f"Tier 1 budget this month. {f['gallons_to_tier2']} gallons remain."
         )
 
     if "score" in q:
@@ -116,5 +135,5 @@ def _fallback_answer(question, ctx):
 def answer_question(question, ctx):
     reply = _call_claude(question, ctx)
     if reply:
-        return {"answer": reply, "source": "gemini"}
+        return {"answer": reply, "source": "claude"}
     return {"answer": _fallback_answer(question, ctx), "source": "offline (grounded in your data, no API key configured)"}
