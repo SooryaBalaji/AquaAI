@@ -38,7 +38,9 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 import assistant
 import auth
 import checks
+import geocode
 import profiles
+import settings
 from civic import WASTE_CATEGORIES, build_civic_report
 from config import DAYS_IN_MONTH
 from score import compute_savings, compute_score
@@ -145,7 +147,7 @@ def handle_unexpected_error(e):
 
 _CSP = os.environ.get("CSP_OVERRIDE") or (
     "default-src 'self'; "
-    "script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://www.gstatic.com; "
+    "script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://www.gstatic.com https://apis.google.com https://www.google.com; "
     "style-src 'self' 'unsafe-inline'; "
     "img-src 'self' data: blob:; "
     "font-src 'self'; "
@@ -216,9 +218,29 @@ def me():
 def delete_account_route():
     user = require_auth()
     removed = profiles.delete_all_for_owner(user["id"])
+    settings.delete(user["id"])
     auth.delete_account(user["id"])
     log.info("account %s deleted with %d household(s)", user["id"], removed)
     return jsonify({"deleted": True, "households_removed": removed})
+
+
+@app.get("/api/settings")
+@limiter.limit("60 per minute")
+def get_settings_route():
+    user = require_auth()
+    return jsonify({"settings": settings.get(user["id"], bool(user.get("phone"))), "phone": user.get("phone")})
+
+
+@app.put("/api/settings")
+@limiter.limit("30 per minute")
+def update_settings_route():
+    user = require_auth()
+    body = request.get_json(force=True, silent=True)
+    try:
+        settings.update(user["id"], body, has_phone=bool(user.get("phone")))
+    except settings.SettingsError as e:
+        return jsonify({"error": str(e)}), 400
+    return jsonify({"settings": settings.get(user["id"], bool(user.get("phone"))), "phone": user.get("phone")})
 
 
 # ---------------------------------------------------------------------------
@@ -245,6 +267,17 @@ def create_profile_route():
     )
     profiles.get_household_data(profile["id"])  # train immediately so the first request is fast
     return jsonify({k: v for k, v in profile.items() if k != "seed"}), 201
+
+
+@app.get("/api/geocode")
+@limiter.limit("60 per minute")
+def geocode_route():
+    require_auth()
+    try:
+        return jsonify(geocode.search(request.args.get("q")))
+    except geocode.GeocodeError:
+        log.warning("geocode lookup failed", exc_info=True)
+        return jsonify({"error": "Location search is unavailable right now. Try again in a moment."}), 502
 
 
 @app.delete("/api/profiles/<profile_id>")

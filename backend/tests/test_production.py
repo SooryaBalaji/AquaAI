@@ -12,6 +12,8 @@ def firebase_mode(monkeypatch):
         "verified-token": {"uid": "fb-user-1", "email": "a@example.com", "email_verified": True},
         "unverified-token": {"uid": "fb-user-2", "email": "b@example.com", "email_verified": False},
         "other-token": {"uid": "fb-user-3", "email": "c@example.com", "email_verified": True},
+        "phone-removed-token": {"uid": "fb-user-4", "email": "d@example.com", "email_verified": True},
+        "phone-token": {"uid": "fb-user-4", "email": "d@example.com", "email_verified": True, "phone_number": "+15551234567"},
     }
 
     def fake_verify(token):
@@ -35,7 +37,7 @@ NEW_HOUSEHOLD = {"name": "Test house", "lat": 37.3, "lon": -121.9, "household_si
 def test_firebase_token_identifies_user(client, firebase_mode):
     r = client.get("/api/auth/me", headers=bearer("verified-token"))
     assert r.status_code == 200
-    assert r.get_json()["user"] == {"id": "fb-user-1", "email": "a@example.com", "email_verified": True}
+    assert r.get_json()["user"] == {"id": "fb-user-1", "email": "a@example.com", "email_verified": True, "phone": None}
 
 
 def test_firebase_rejects_unknown_token(client, firebase_mode):

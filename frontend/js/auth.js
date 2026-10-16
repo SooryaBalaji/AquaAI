@@ -15,9 +15,17 @@ const FIREBASE_MESSAGES = {
   'auth/too-many-requests': 'Too many attempts. Wait a few minutes and try again.',
   'auth/popup-closed-by-user': 'The Google window was closed before finishing.',
   'auth/network-request-failed': 'Could not reach the sign in service. Check your connection.',
+  'auth/operation-not-allowed': 'This sign in method is not enabled yet. In Firebase, open Authentication, then Sign-in method, and turn it on.',
+  'auth/unauthorized-domain': 'This address is not allowed for sign in. In Firebase, add it under Authentication, Settings, Authorized domains. On your computer, open the app at http://localhost:5000 instead of 127.0.0.1.',
+  'auth/popup-blocked': 'Your browser blocked the Google window. Allow pop-ups for this site and try again.',
+  'auth/cancelled-popup-request': 'Another sign in window was already open. Try again.',
+  'auth/account-exists-with-different-credential': 'An account with this email already exists. Sign in with your password instead.',
+  'auth/internal-error': 'Google sign in could not start. Open the browser console (F12) and check for a blocked request.',
+  'auth/user-disabled': 'This account has been disabled.',
 };
 
 function authErrorText(err) {
+  if (err && err.code) console.error('Sign in error:', err.code, err.message);
   return FIREBASE_MESSAGES[err && err.code] || 'Something went wrong signing in. Try again.';
 }
 
@@ -31,28 +39,52 @@ function renderAccountArea() {
   const area = document.getElementById('account-area');
   if (currentUser) {
     area.innerHTML = `
-      <span class="account-email">${esc(currentUser.email)}</span>
-      <button class="link-btn" id="delete-account-btn">Delete account</button>
+      <button class="account-email-btn" id="account-email-btn" title="Open settings">${esc(currentUser.email)}</button>
       <button class="link-btn-light" id="signout-btn">Sign out</button>`;
     document.getElementById('signout-btn').addEventListener('click', signOut);
-    document.getElementById('delete-account-btn').addEventListener('click', deleteAccount);
+    document.getElementById('account-email-btn').addEventListener('click', () => {
+      document.querySelector('.rail-btn[data-tab="settings"]').click();
+    });
   } else {
     area.innerHTML = `<button class="link-btn-light" id="signin-btn">Sign in</button>`;
-    document.getElementById('signin-btn').addEventListener('click', openAuthForm);
+    document.getElementById('signin-btn').addEventListener('click', () => openAuthForm());
   }
-  document.getElementById('verify-banner').hidden = !(currentUser && currentUser.email_verified === false);
+  syncVerifyPage();
   updateProfileBarForAuthState();
 }
 
-function openAuthForm() {
+let authMode = 'login';
+
+function setAuthMode(mode) {
+  authMode = mode;
+  const login = mode === 'login';
+  document.getElementById('auth-title').textContent = login ? 'Welcome back' : 'Create your account';
+  document.getElementById('auth-sub').textContent = login
+    ? 'Sign in to manage your households.'
+    : 'Add your own household and track its water.';
+  document.getElementById('auth-submit-btn').textContent = login ? 'Sign in' : 'Create account';
+  document.getElementById('auth-switch-text').textContent = login ? 'New to AquaAI?' : 'Already have an account?';
+  document.getElementById('auth-switch-btn').textContent = login ? 'Create an account' : 'Sign in';
+  document.getElementById('auth-password').placeholder = login ? 'Your password' : 'At least 8 characters';
+  document.getElementById('auth-password').autocomplete = login ? 'current-password' : 'new-password';
+  document.getElementById('auth-forgot-btn').hidden = !(login && authConfig.provider === 'firebase');
+  setAuthMessage('');
+}
+
+function openAuthForm(mode) {
+  setAuthMode(mode === 'register' ? 'register' : 'login');
   document.getElementById('auth-form').hidden = false;
+  document.body.classList.add('auth-open');
   document.getElementById('auth-email').focus();
 }
 
 function closeAuthForm() {
   document.getElementById('auth-form').hidden = true;
+  document.body.classList.remove('auth-open');
   document.getElementById('auth-email').value = '';
   document.getElementById('auth-password').value = '';
+  document.getElementById('auth-password').type = 'password';
+  document.getElementById('auth-pw-toggle').textContent = 'Show';
   setAuthMessage('');
 }
 
@@ -69,7 +101,7 @@ async function initAuth() {
 
   const firebaseMode = authConfig.provider === 'firebase';
   document.getElementById('auth-google-btn').hidden = !firebaseMode;
-  document.getElementById('auth-forgot-btn').hidden = !firebaseMode;
+  document.getElementById('auth-or').hidden = !firebaseMode;
 
   if (firebaseMode) {
     await initFirebase();
@@ -119,6 +151,7 @@ async function trySavedSession() {
 }
 
 async function signOut() {
+  verifySkipped = false;
   if (fbAuth) {
     await fbApi.signOut(fbAuth);
     return;
@@ -128,23 +161,34 @@ async function signOut() {
   await afterSignInChange();
 }
 
-async function deleteAccount() {
-  if (!confirm('Delete your account and every household you created? This cannot be undone.')) return;
+async function deleteAccountNow() {
   const res = await getJSON('/api/account', { method: 'DELETE' });
-  if (res.error) { alert(res.error); return; }
+  if (res.error) return res.error;
   if (fbAuth) {
     await fbApi.signOut(fbAuth);
-    return;
+    return null;
   }
   setAuthToken(null);
   currentUser = null;
   await afterSignInChange();
+  return null;
 }
 
 async function handleAuthSubmit(mode) {
+  const btn = document.getElementById('auth-submit-btn');
+  btn.disabled = true;
+  try {
+    await submitAuth(mode);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function submitAuth(mode) {
   const email = document.getElementById('auth-email').value.trim();
   const password = document.getElementById('auth-password').value;
   setAuthMessage('');
+  if (!email || !password) { setAuthMessage('Enter your email and password.'); return; }
 
   if (fbAuth) {
     try {
@@ -175,6 +219,7 @@ async function handleAuthSubmit(mode) {
 
 async function handleGoogle() {
   setAuthMessage('');
+  if (!fbAuth) { setAuthMessage('The sign in service did not load. Reload the page and try again.'); return; }
   try {
     await fbApi.signInWithPopup(fbAuth, new fbApi.GoogleAuthProvider());
   } catch (err) {
@@ -193,39 +238,108 @@ async function handleForgot() {
   }
 }
 
+let verifySkipped = false;
+let verifyTimer = null;
+let resendTimer = null;
+
+function syncVerifyPage() {
+  const needs = !!(currentUser && currentUser.email_verified === false && fbAuth && !verifySkipped);
+  const page = document.getElementById('verify-page');
+  if (needs && page.hidden) openVerifyPage();
+  if (!needs && !page.hidden) closeVerifyPage();
+}
+
+function openVerifyPage() {
+  document.getElementById('verify-email').textContent = currentUser.email;
+  document.getElementById('verify-note').textContent = '';
+  document.getElementById('verify-page').hidden = false;
+  document.body.classList.add('auth-open');
+  clearInterval(verifyTimer);
+  verifyTimer = setInterval(() => recheckVerification(false), 4000);
+}
+
+function closeVerifyPage() {
+  clearInterval(verifyTimer);
+  verifyTimer = null;
+  document.getElementById('verify-page').hidden = true;
+  if (document.getElementById('auth-form').hidden) document.body.classList.remove('auth-open');
+}
+
+function startResendCooldown(seconds) {
+  const btn = document.getElementById('verify-resend-btn');
+  clearInterval(resendTimer);
+  let left = seconds;
+  btn.disabled = true;
+  btn.textContent = `Resend email (${left}s)`;
+  resendTimer = setInterval(() => {
+    left -= 1;
+    if (left <= 0) {
+      clearInterval(resendTimer);
+      btn.disabled = false;
+      btn.textContent = 'Resend email';
+    } else {
+      btn.textContent = `Resend email (${left}s)`;
+    }
+  }, 1000);
+}
+
 async function resendVerification() {
   const note = document.getElementById('verify-note');
+  note.dataset.kind = 'notice';
   try {
     await fbApi.sendEmailVerification(fbAuth.currentUser);
     note.textContent = 'Sent. Check your inbox and spam folder.';
+    startResendCooldown(30);
   } catch (err) {
+    note.dataset.kind = 'error';
     note.textContent = authErrorText(err);
   }
 }
 
-async function recheckVerification() {
+async function recheckVerification(manual) {
   const note = document.getElementById('verify-note');
   if (!fbAuth || !fbAuth.currentUser) return;
-  await fbAuth.currentUser.reload();
-  await fbAuth.currentUser.getIdToken(true);
-  if (fbAuth.currentUser.emailVerified) {
-    currentUser.email_verified = true;
-    note.textContent = '';
-    renderAccountArea();
-  } else {
-    note.textContent = 'Not verified yet. Open the link in the email first.';
+  try {
+    await fbAuth.currentUser.reload();
+    if (fbAuth.currentUser.emailVerified) {
+      await fbAuth.currentUser.getIdToken(true);
+      currentUser.email_verified = true;
+      renderAccountArea();
+      await loadSettings();
+    } else if (manual) {
+      note.dataset.kind = 'error';
+      note.textContent = 'Not verified yet. Open the link in the email first.';
+    }
+  } catch (err) {
+    if (manual) {
+      note.dataset.kind = 'error';
+      note.textContent = authErrorText(err);
+    }
   }
 }
 
-document.getElementById('auth-login-btn').addEventListener('click', () => handleAuthSubmit('login'));
-document.getElementById('auth-register-btn').addEventListener('click', () => handleAuthSubmit('register'));
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && !document.getElementById('verify-page').hidden) recheckVerification(false);
+});
+
+document.getElementById('auth-form-el').addEventListener('submit', e => {
+  e.preventDefault();
+  handleAuthSubmit(authMode);
+});
+document.getElementById('auth-switch-btn').addEventListener('click', () => setAuthMode(authMode === 'login' ? 'register' : 'login'));
 document.getElementById('auth-google-btn').addEventListener('click', handleGoogle);
 document.getElementById('auth-forgot-btn').addEventListener('click', handleForgot);
 document.getElementById('auth-cancel-btn').addEventListener('click', closeAuthForm);
-document.getElementById('verify-resend-btn').addEventListener('click', resendVerification);
-document.getElementById('verify-check-btn').addEventListener('click', recheckVerification);
-['auth-email', 'auth-password'].forEach(id => {
-  document.getElementById(id).addEventListener('keydown', e => {
-    if (e.key === 'Enter') handleAuthSubmit('login');
-  });
+document.getElementById('auth-pw-toggle').addEventListener('click', () => {
+  const input = document.getElementById('auth-password');
+  const show = input.type === 'password';
+  input.type = show ? 'text' : 'password';
+  document.getElementById('auth-pw-toggle').textContent = show ? 'Hide' : 'Show';
 });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && !document.getElementById('auth-form').hidden) closeAuthForm();
+});
+document.getElementById('verify-resend-btn').addEventListener('click', resendVerification);
+document.getElementById('verify-check-btn').addEventListener('click', () => recheckVerification(true));
+document.getElementById('verify-signout-btn').addEventListener('click', () => { verifySkipped = false; signOut(); });
+document.getElementById('verify-skip-btn').addEventListener('click', () => { verifySkipped = true; closeVerifyPage(); });

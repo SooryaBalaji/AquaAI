@@ -21,6 +21,7 @@ To enable Firestore:
 Without those steps, AquaAI runs on SQLite automatically. No setup needed.
 """
 
+import json
 import logging
 import os
 import sqlite3
@@ -74,6 +75,12 @@ def _init_sqlite():
                 email TEXT NOT NULL UNIQUE,
                 password_hash TEXT NOT NULL,
                 created_at TEXT NOT NULL
+            )
+        """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS user_settings (
+                user_id TEXT PRIMARY KEY,
+                data TEXT NOT NULL
             )
         """)
 
@@ -165,3 +172,36 @@ def delete_user(user_id):
             return
         with sqlite3.connect(SQLITE_PATH) as conn:
             conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
+
+
+# ---------------------------------------------------------------------------
+# User settings
+# ---------------------------------------------------------------------------
+def get_settings(user_id):
+    if _backend == "firestore":
+        doc = _firestore_client.collection("user_settings").document(user_id).get()
+        return doc.to_dict() if doc.exists else None
+    with sqlite3.connect(SQLITE_PATH) as conn:
+        row = conn.execute("SELECT data FROM user_settings WHERE user_id = ?", (user_id,)).fetchone()
+        return json.loads(row[0]) if row else None
+
+
+def save_settings(user_id, data):
+    with _lock:
+        if _backend == "firestore":
+            _firestore_client.collection("user_settings").document(user_id).set(data)
+            return
+        with sqlite3.connect(SQLITE_PATH) as conn:
+            conn.execute(
+                "INSERT OR REPLACE INTO user_settings (user_id, data) VALUES (?, ?)",
+                (user_id, json.dumps(data)),
+            )
+
+
+def delete_settings(user_id):
+    with _lock:
+        if _backend == "firestore":
+            _firestore_client.collection("user_settings").document(user_id).delete()
+            return
+        with sqlite3.connect(SQLITE_PATH) as conn:
+            conn.execute("DELETE FROM user_settings WHERE user_id = ?", (user_id,))

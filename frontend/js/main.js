@@ -8,10 +8,15 @@ document.querySelectorAll('.rail-btn[data-tab]').forEach(btn => {
 });
 
 (async () => {
+  const wantsForm = location.hash === '#signin' || location.hash === '#signup';
+  if (wantsForm) openAuthForm(location.hash === '#signup' ? 'register' : 'login');
+
   renderAccountArea();
   await initAuth();
+  if (wantsForm) {
+    if (isSignedIn()) closeAuthForm();
+    else setAuthMode(authMode);
+  }
   await refreshProfileList();
   await reloadAllTabs();
-
-  if (location.hash === '#signin' && !isSignedIn()) openAuthForm();
 })();

@@ -1,14 +1,28 @@
-/* A short list of California cities with known coordinates, so creating a
-   profile doesn't require a geocoding API. The backend only ever sees the
-   resulting lat/lon; it doesn't know about city names. */
-const CA_CITIES = {
-  'San Jose': [37.3382, -121.8863],
-  'Los Angeles': [34.0522, -118.2437],
-  'San Diego': [32.7157, -117.1611],
-  'Sacramento': [38.5816, -121.4944],
-  'Fresno': [36.7378, -119.7871],
-  'Oakland': [37.8044, -122.2712],
-};
+const placeResults = {};
+let placeTimer = null;
+
+async function searchPlaces(text) {
+  const res = await getJSON('/api/geocode?q=' + encodeURIComponent(text));
+  return Array.isArray(res) ? res : null;
+}
+
+document.getElementById('pf-city').addEventListener('input', (e) => {
+  clearTimeout(placeTimer);
+  const text = e.target.value.trim();
+  if (text.length < 2 || placeResults[text]) return;
+  placeTimer = setTimeout(async () => {
+    const found = await searchPlaces(text);
+    if (!found) return;
+    const list = document.getElementById('pf-city-list');
+    list.innerHTML = '';
+    found.forEach(p => {
+      placeResults[p.label] = [p.lat, p.lon];
+      const opt = document.createElement('option');
+      opt.value = p.label;
+      list.appendChild(opt);
+    });
+  }, 300);
+});
 
 async function refreshProfileList() {
   const list = await getJSON('/api/profiles');
@@ -29,7 +43,7 @@ function updateDeleteButtonVisibility(list) {
 }
 
 async function reloadAllTabs() {
-  await Promise.all([loadDashboard(), loadLeaks(), loadForecast()]);
+  await Promise.all([loadDashboard(), loadLeaks(), loadForecast(), loadSettings()]);
 }
 
 function updateProfileBarForAuthState() {
@@ -81,8 +95,25 @@ document.getElementById('pf-create-btn').addEventListener('click', async () => {
     document.getElementById('pf-error').textContent = 'Give the household a name.';
     return;
   }
-  const city = document.getElementById('pf-city').value;
-  const [lat, lon] = CA_CITIES[city];
+  const place = document.getElementById('pf-city').value.trim();
+  if (!place) {
+    document.getElementById('pf-error').textContent = 'Enter a city or ZIP code.';
+    return;
+  }
+  let coords = placeResults[place];
+  if (!coords) {
+    const found = await searchPlaces(place);
+    if (found === null) {
+      document.getElementById('pf-error').textContent = 'Location search is unavailable right now. Try again in a moment.';
+      return;
+    }
+    if (!found.length) {
+      document.getElementById('pf-error').textContent = "Couldn't find that place. Try a city name or a 5-digit ZIP code.";
+      return;
+    }
+    coords = [found[0].lat, found[0].lon];
+  }
+  const [lat, lon] = coords;
   const householdSize = parseInt(document.getElementById('pf-size').value, 10) || 4;
   const tierLimit = parseInt(document.getElementById('pf-tier').value, 10) || 4500;
 
@@ -93,6 +124,12 @@ document.getElementById('pf-create-btn').addEventListener('click', async () => {
   });
 
   if (res.error) {
+    if (res.code === 'email_not_verified') {
+      verifySkipped = false;
+      document.getElementById('profile-form').hidden = true;
+      syncVerifyPage();
+      return;
+    }
     document.getElementById('pf-error').textContent = res.error;
     return;
   }
