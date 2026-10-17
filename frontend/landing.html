@@ -7,6 +7,7 @@
 <link rel="icon" type="image/svg+xml" href="logo.svg">
 <link rel="icon" type="image/png" sizes="64x64" href="logo-64.png">
 <link rel="apple-touch-icon" href="logo-180.png">
+<script src="js/theme.js"></script>
 <link rel="stylesheet" href="css/tokens.css">
 <link rel="stylesheet" href="css/landing.css">
 </head>
@@ -23,8 +24,8 @@
       <li><a href="#how-it-works">How it works</a></li>
       <li><a href="#faq">FAQ</a></li>
     </ul>
-    <a class="nav-signin" href="index.html#signin">Sign in</a>
-    <a class="nav-cta" href="index.html#signup">Get started</a>
+    <a class="nav-signin" id="nav-signin" href="/app#signin">Sign in</a>
+    <a class="nav-cta js-signup" href="/app#signup">Get started</a>
   </nav>
 </header>
 
@@ -36,8 +37,8 @@
       <h1 class="hero-title">Know your water <span>before the bill does.</span></h1>
       <p class="hero-lede">AquaAI watches a household's water use through the day, catches leaks a fixed threshold would miss, and tells you the dollar cost of doing nothing about it.</p>
       <div class="hero-actions">
-        <a class="action-button action-button--primary" href="index.html#signup">Create your account</a>
-        <a class="action-button action-button--ghost" href="index.html">Try the demo</a>
+        <a class="action-button action-button--primary js-signup" href="/app#signup">Create your account</a>
+        <a class="action-button action-button--ghost" href="/app">Try the demo</a>
       </div>
       <div class="hero-footnote">
         <img class="brand-logo" src="logo.svg" width="34" height="34" alt="">
@@ -283,7 +284,7 @@
 <section class="final-cta">
   <div class="container">
     <h2>See it work for a <span>real household.</span></h2>
-    <a class="action-button action-button--primary" href="index.html#signup">Create your account</a>
+    <a class="action-button action-button--primary js-signup" href="/app#signup">Create your account</a>
   </div>
 </section>
 </main>
@@ -291,10 +292,10 @@
 <footer>
   <div class="container footer-inner">
     <span>AquaAI, household water intelligence</span>
-    <span><a href="privacy.html">Privacy</a>  <a href="index.html">Open the app</a></span>
+    <span><a href="/privacy">Privacy</a>  <a href="/app">Open the app</a></span>
   </div>
 </footer>
 
 <script src="js/landing.js"></script>
 </body>
-</html>
+</html> 

@@ -74,14 +74,13 @@ def _verify_firebase_token(token):
         "id": uid,
         "email": decoded.get("email") or "",
         "email_verified": bool(decoded.get("email_verified")),
-        "phone": decoded.get("phone_number") or None,
     }
 
 
 def _verify_local_token(token):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
-        return {"id": payload["sub"], "email": payload["email"], "email_verified": True, "phone": None}
+        return {"id": payload["sub"], "email": payload["email"], "email_verified": True}
     except jwt.PyJWTError:
         return None
 
@@ -138,7 +137,7 @@ def _issue_token(user):
 
 
 def _public_user(user):
-    return {"id": user["id"], "email": user["email"], "email_verified": True, "phone": None}
+    return {"id": user["id"], "email": user["email"], "email_verified": True}
 
 
 def _normalize_email(email):

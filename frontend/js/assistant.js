@@ -1,4 +1,4 @@
-function addMessage(text, who, src) {
+function addMessage(text, who, src, warning) {
   const win = document.getElementById('chat-window');
   const div = document.createElement('div');
   div.className = 'msg ' + who;
@@ -8,6 +8,13 @@ function addMessage(text, who, src) {
     tag.className = 'src';
     tag.textContent = src;
     div.appendChild(tag);
+  }
+  if (warning) {
+    const note = document.createElement('span');
+    note.className = 'warn';
+    note.setAttribute('role', 'alert');
+    note.textContent = warning;
+    div.appendChild(note);
   }
   win.appendChild(div);
   win.scrollTop = win.scrollHeight;
@@ -37,7 +44,7 @@ async function askQuestion(question) {
     addMessage(res.error, 'bot');
     return;
   }
-  addMessage(res.answer, 'bot', res.source === 'gemini' ? 'Answered by Gemini' : res.source);
+  addMessage(res.answer, 'bot', res.source === 'gemini' ? 'Answered by Gemini' : res.source, res.warning);
 }
 
 document.getElementById('chat-form').addEventListener('submit', (e) => {

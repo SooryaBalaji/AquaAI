@@ -1,0 +1,2 @@
+# Only needed to run the test suite: pytest tests/
+pytest==9.1.1

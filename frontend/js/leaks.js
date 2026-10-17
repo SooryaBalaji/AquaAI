@@ -14,6 +14,17 @@ async function loadLeaks() {
   if (params.length) path += '?' + params.join('&');
 
   const a = await getJSON(path);
+  if (a.error) {
+    document.getElementById('anomaly-rows').innerHTML = `<tr><td colspan="4">Could not load leak results. ${esc(a.error)}</td></tr>`;
+    return;
+  }
+  if (a.source === 'manual') {
+    document.getElementById('anomaly-rows').innerHTML = '<tr><td colspan="4">The Leak Detective needs hourly or 15 minute readings. This household only has daily totals, so there is nothing to check yet.</td></tr>';
+    document.getElementById('model-note').textContent = '';
+    if (weeklyChart) { weeklyChart.destroy(); weeklyChart = null; }
+    document.getElementById('weeklyChart-wrap').innerHTML = '';
+    return;
+  }
   const rows = a.anomalies.map(x => `
     <tr>
       <td>Day ${x.day}</td>

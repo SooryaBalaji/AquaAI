@@ -3,6 +3,7 @@ let authConfig = { provider: 'local' };
 let fbAuth = null;
 let fbApi = null;
 let authSettled = false;
+let authReady = false;
 
 const FIREBASE_MESSAGES = {
   'auth/invalid-credential': 'Incorrect email or password.',
@@ -35,7 +36,16 @@ function setAuthMessage(text, isError) {
   el.dataset.kind = isError === false ? 'notice' : 'error';
 }
 
+function rememberSession() {
+  if (!authReady) return;
+  try {
+    if (currentUser) localStorage.setItem('aquaai_signed_in', currentUser.email || '1');
+    else localStorage.removeItem('aquaai_signed_in');
+  } catch {}
+}
+
 function renderAccountArea() {
+  rememberSession();
   const area = document.getElementById('account-area');
   if (currentUser) {
     area.innerHTML = `
@@ -107,6 +117,7 @@ async function initAuth() {
     await initFirebase();
   } else {
     await trySavedSession();
+    authReady = true;
     renderAccountArea();
   }
 }
@@ -136,6 +147,7 @@ async function initFirebase() {
         await afterSignInChange();
       } else {
         authSettled = true;
+        authReady = true;
         renderAccountArea();
         resolve();
       }
@@ -221,7 +233,9 @@ async function handleGoogle() {
   setAuthMessage('');
   if (!fbAuth) { setAuthMessage('The sign in service did not load. Reload the page and try again.'); return; }
   try {
-    await fbApi.signInWithPopup(fbAuth, new fbApi.GoogleAuthProvider());
+    const provider = new fbApi.GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
+    await fbApi.signInWithPopup(fbAuth, provider);
   } catch (err) {
     setAuthMessage(authErrorText(err));
   }

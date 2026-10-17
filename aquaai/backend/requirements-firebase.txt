@@ -1,0 +1,3 @@
+# Optional. Only needed to use Firestore instead of the default local
+# SQLite database. See storage.py for setup steps.
+# firebase-admin now ships in requirements.txt

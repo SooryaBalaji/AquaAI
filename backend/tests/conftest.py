@@ -22,6 +22,7 @@ if os.path.exists(TEST_DB_PATH):
 os.environ["SECRET_KEY"] = "test-secret-key"
 os.environ["RATELIMIT_ENABLED"] = "0"
 os.environ["AUTH_PROVIDER"] = "local"
+os.environ["GEMINI_API_KEY"] = ""  # never call the real API from tests, even if a developer .env has a key
 os.environ.pop("FIREBASE_CREDENTIALS_PATH", None)  # force SQLite for tests
 
 import storage  # noqa: E402
@@ -45,7 +46,7 @@ def unique_email():
 
 @pytest.fixture
 def registered_user(client, unique_email):
-    """Registers a fresh user and returns (headers, user_id, email)."""
+    #Registers a fresh user and returns (headers, user_id, email)
     r = client.post("/api/auth/register", json={"email": unique_email, "password": "password123"})
     assert r.status_code == 201, r.get_json()
     body = r.get_json()

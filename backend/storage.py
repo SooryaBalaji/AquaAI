@@ -66,9 +66,13 @@ def _init_sqlite():
                 lon REAL NOT NULL,
                 household_size INTEGER NOT NULL,
                 tier1_limit_gal REAL NOT NULL,
-                seed INTEGER NOT NULL
+                seed INTEGER NOT NULL,
+                place TEXT
             )
         """)
+        columns = [row[1] for row in conn.execute("PRAGMA table_info(profiles)")]
+        if "place" not in columns:
+            conn.execute("ALTER TABLE profiles ADD COLUMN place TEXT")
         conn.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 id TEXT PRIMARY KEY,
@@ -78,16 +82,21 @@ def _init_sqlite():
             )
         """)
         conn.execute("""
+            CREATE TABLE IF NOT EXISTS usage (
+                profile_id TEXT NOT NULL,
+                day TEXT NOT NULL,
+                gallons REAL NOT NULL,
+                PRIMARY KEY (profile_id, day)
+            )
+        """)
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS user_settings (
                 user_id TEXT PRIMARY KEY,
                 data TEXT NOT NULL
             )
         """)
 
-
-# ---------------------------------------------------------------------------
 # Profiles
-# ---------------------------------------------------------------------------
 def list_profiles(owner_id=None):
     """Public profiles (owner_id IS NULL) plus, if owner_id is given, that
     user's own private profiles."""
@@ -123,11 +132,11 @@ def save_profile(profile):
         with sqlite3.connect(SQLITE_PATH) as conn:
             conn.execute("""
                 INSERT OR REPLACE INTO profiles
-                    (id, owner_id, name, lat, lon, household_size, tier1_limit_gal, seed)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    (id, owner_id, name, lat, lon, household_size, tier1_limit_gal, seed, place)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 profile["id"], profile.get("owner_id"), profile["name"], profile["lat"], profile["lon"],
-                profile["household_size"], profile["tier1_limit_gal"], profile["seed"],
+                profile["household_size"], profile["tier1_limit_gal"], profile["seed"], profile.get("place"),
             ))
 
 
@@ -140,9 +149,7 @@ def delete_profile_row(profile_id):
             conn.execute("DELETE FROM profiles WHERE id = ?", (profile_id,))
 
 
-# ---------------------------------------------------------------------------
 # Users
-# ---------------------------------------------------------------------------
 def get_user_by_email(email):
     if _backend == "firestore":
         docs = list(_firestore_client.collection("users").where("email", "==", email).limit(1).stream())
@@ -174,9 +181,7 @@ def delete_user(user_id):
             conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
 
 
-# ---------------------------------------------------------------------------
 # User settings
-# ---------------------------------------------------------------------------
 def get_settings(user_id):
     if _backend == "firestore":
         doc = _firestore_client.collection("user_settings").document(user_id).get()
@@ -205,3 +210,55 @@ def delete_settings(user_id):
             return
         with sqlite3.connect(SQLITE_PATH) as conn:
             conn.execute("DELETE FROM user_settings WHERE user_id = ?", (user_id,))
+
+
+# Usage: one gallons total per household per calendar day
+def list_usage(profile_id):
+    """Returns {"YYYY-MM-DD": gallons} for one household."""
+    if _backend == "firestore":
+        docs = _firestore_client.collection("usage").where("profile_id", "==", profile_id).stream()
+        return {d.to_dict()["day"]: d.to_dict()["gallons"] for d in docs}
+    with sqlite3.connect(SQLITE_PATH) as conn:
+        rows = conn.execute("SELECT day, gallons FROM usage WHERE profile_id = ?", (profile_id,)).fetchall()
+        return {day: gallons for day, gallons in rows}
+
+
+def save_usage(profile_id, entries):
+    """entries: {"YYYY-MM-DD": gallons}. Adds new days and replaces existing ones."""
+    with _lock:
+        if _backend == "firestore":
+            col = _firestore_client.collection("usage")
+            items = list(entries.items())
+            for start in range(0, len(items), 400):
+                batch = _firestore_client.batch()
+                for day, gallons in items[start:start + 400]:
+                    batch.set(col.document(f"{profile_id}_{day}"), {"profile_id": profile_id, "day": day, "gallons": gallons})
+                batch.commit()
+            return
+        with sqlite3.connect(SQLITE_PATH) as conn:
+            conn.executemany(
+                "INSERT OR REPLACE INTO usage (profile_id, day, gallons) VALUES (?, ?, ?)",
+                [(profile_id, day, gallons) for day, gallons in entries.items()],
+            )
+
+
+def delete_usage(profile_id, days=None):
+    """Deletes the given days, or every day for the household when days is None."""
+    with _lock:
+        if _backend == "firestore":
+            col = _firestore_client.collection("usage")
+            if days is None:
+                refs = [d.reference for d in col.where("profile_id", "==", profile_id).stream()]
+            else:
+                refs = [col.document(f"{profile_id}_{day}") for day in days]
+            for start in range(0, len(refs), 400):
+                batch = _firestore_client.batch()
+                for ref in refs[start:start + 400]:
+                    batch.delete(ref)
+                batch.commit()
+            return
+        with sqlite3.connect(SQLITE_PATH) as conn:
+            if days is None:
+                conn.execute("DELETE FROM usage WHERE profile_id = ?", (profile_id,))
+            else:
+                conn.executemany("DELETE FROM usage WHERE profile_id = ? AND day = ?", [(profile_id, d) for d in days])

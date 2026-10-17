@@ -12,8 +12,6 @@ def firebase_mode(monkeypatch):
         "verified-token": {"uid": "fb-user-1", "email": "a@example.com", "email_verified": True},
         "unverified-token": {"uid": "fb-user-2", "email": "b@example.com", "email_verified": False},
         "other-token": {"uid": "fb-user-3", "email": "c@example.com", "email_verified": True},
-        "phone-removed-token": {"uid": "fb-user-4", "email": "d@example.com", "email_verified": True},
-        "phone-token": {"uid": "fb-user-4", "email": "d@example.com", "email_verified": True, "phone_number": "+15551234567"},
     }
 
     def fake_verify(token):
@@ -37,7 +35,7 @@ NEW_HOUSEHOLD = {"name": "Test house", "lat": 37.3, "lon": -121.9, "household_si
 def test_firebase_token_identifies_user(client, firebase_mode):
     r = client.get("/api/auth/me", headers=bearer("verified-token"))
     assert r.status_code == 200
-    assert r.get_json()["user"] == {"id": "fb-user-1", "email": "a@example.com", "email_verified": True, "phone": None}
+    assert r.get_json()["user"] == {"id": "fb-user-1", "email": "a@example.com", "email_verified": True}
 
 
 def test_firebase_rejects_unknown_token(client, firebase_mode):
@@ -167,3 +165,24 @@ def test_firebase_account_deletion_calls_firebase(client, firebase_mode, monkeyp
     r = client.delete("/api/account", headers=bearer("other-token"))
     assert r.status_code == 200
     assert deleted == ["fb-user-3"]
+
+
+def test_clean_urls(client):
+    assert client.get("/app").status_code == 200
+    assert client.get("/privacy").status_code == 200
+    r = client.get("/index.html")
+    assert r.status_code == 301 and r.headers["Location"].endswith("/app")
+
+
+def test_dev_errors_show_where_they_happened(client, monkeypatch):
+    import app as app_module
+    monkeypatch.setattr(app_module, "IS_PRODUCTION", False)
+    monkeypatch.setattr(app_module, "_load_authorized_profile", lambda: 1 / 0)
+    r = client.post("/api/ask", json={"question": "hi"})
+    assert r.status_code == 500 and "ZeroDivisionError" in r.get_json()["error"] and " line " in r.get_json()["error"]
+
+
+def test_healthz_reports_assistant_without_secrets(client, monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "secret-key-xyz")
+    body = client.get("/healthz").get_json()
+    assert body["assistant"]["key_set"] is True and "secret-key-xyz" not in str(body)

@@ -23,12 +23,15 @@ public data and required for creating or deleting a household.
 
 import logging
 import os
+import sys
+import threading
+import traceback
 
 from dotenv import load_dotenv
 
 load_dotenv()
 
-from flask import Flask, g, jsonify, request, send_from_directory
+from flask import Flask, g, jsonify, redirect, request, send_from_directory
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
@@ -41,8 +44,11 @@ import checks
 import geocode
 import profiles
 import settings
+import storage
+import usage
 from civic import WASTE_CATEGORIES, build_civic_report
 from config import DAYS_IN_MONTH
+from datetime import date, datetime, timezone
 from score import compute_savings, compute_score
 from weather import build_forecast
 
@@ -73,10 +79,7 @@ if IS_PRODUCTION:
     if _problems:
         raise RuntimeError("Refusing to start in production:\n- " + "\n- ".join(_problems))
 
-
-# ---------------------------------------------------------------------------
 # Auth helpers
-# ---------------------------------------------------------------------------
 @app.before_request
 def load_current_user():
     g.user = auth.user_from_auth_header(request.headers.get("Authorization"))
@@ -110,10 +113,8 @@ def require_auth():
     return g.user
 
 
-# ---------------------------------------------------------------------------
 # Structured error handling. Every error, expected or not, comes back as
-# {"error": "..."} with an appropriate status code, never a raw traceback.
-# ---------------------------------------------------------------------------
+# {"error": "..."} with an appropriate status code, never a raw traceback
 @app.errorhandler(auth.AuthError)
 def handle_auth_error(e):
     body = {"error": e.message}
@@ -142,12 +143,16 @@ def handle_unexpected_error(e):
     if isinstance(e, HTTPException):
         return jsonify({"error": e.description or e.name}), e.code
     log.exception("unhandled error on %s %s", request.method, request.path)
-    return jsonify({"error": "something went wrong on our end"}), 500
+    if IS_PRODUCTION:
+        return jsonify({"error": "something went wrong on our end"}), 500
+    frame = traceback.extract_tb(e.__traceback__)[-1]
+    where = f"{os.path.basename(frame.filename)} line {frame.lineno}"
+    return jsonify({"error": f"something went wrong on our end ({type(e).__name__}: {e} at {where})"}), 500
 
 
 _CSP = os.environ.get("CSP_OVERRIDE") or (
     "default-src 'self'; "
-    "script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://www.gstatic.com https://apis.google.com https://www.google.com; "
+    "script-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://www.gstatic.com https://apis.google.com; "
     "style-src 'self' 'unsafe-inline'; "
     "img-src 'self' data: blob:; "
     "font-src 'self'; "
@@ -177,9 +182,22 @@ def landing_page():
     return send_from_directory(FRONTEND_DIR, "landing.html")
 
 
-# ---------------------------------------------------------------------------
+@app.route("/app")
+def app_page():
+    return send_from_directory(FRONTEND_DIR, "index.html")
+
+
+@app.route("/privacy")
+def privacy_page():
+    return send_from_directory(FRONTEND_DIR, "privacy.html")
+
+
+@app.route("/index.html")
+def legacy_app_url():
+    return redirect("/app", code=301)
+
+
 # Auth routes
-# ---------------------------------------------------------------------------
 @app.get("/api/auth/config")
 def auth_config():
     return jsonify(auth.public_config())
@@ -188,7 +206,10 @@ def auth_config():
 @app.get("/healthz")
 @limiter.exempt
 def healthz():
-    return jsonify({"status": "ok", "storage": profiles.storage_backend(), "auth": auth.provider()})
+    return jsonify({
+        "status": "ok", "storage": profiles.storage_backend(), "auth": auth.provider(),
+        "assistant": assistant.status(),
+    })
 
 
 @app.post("/api/auth/register")
@@ -228,7 +249,7 @@ def delete_account_route():
 @limiter.limit("60 per minute")
 def get_settings_route():
     user = require_auth()
-    return jsonify({"settings": settings.get(user["id"], bool(user.get("phone"))), "phone": user.get("phone")})
+    return jsonify({"settings": settings.get(user["id"])})
 
 
 @app.put("/api/settings")
@@ -237,15 +258,13 @@ def update_settings_route():
     user = require_auth()
     body = request.get_json(force=True, silent=True)
     try:
-        settings.update(user["id"], body, has_phone=bool(user.get("phone")))
+        settings.update(user["id"], body)
     except settings.SettingsError as e:
         return jsonify({"error": str(e)}), 400
-    return jsonify({"settings": settings.get(user["id"], bool(user.get("phone"))), "phone": user.get("phone")})
+    return jsonify({"settings": settings.get(user["id"])})
 
 
-# ---------------------------------------------------------------------------
 # Profiles
-# ---------------------------------------------------------------------------
 @app.get("/api/profiles")
 def list_profiles_route():
     owner_id = g.user["id"] if g.get("user") else None
@@ -264,8 +283,8 @@ def create_profile_route():
         lon=body.get("lon"),
         household_size=body.get("household_size"),
         tier1_limit_gal=body.get("tier1_limit_gal"),
+        place=body.get("place"),
     )
-    profiles.get_household_data(profile["id"])  # train immediately so the first request is fast
     return jsonify({k: v for k, v in profile.items() if k != "seed"}), 201
 
 
@@ -280,6 +299,17 @@ def geocode_route():
         return jsonify({"error": "Location search is unavailable right now. Try again in a moment."}), 502
 
 
+@app.patch("/api/profiles/<profile_id>")
+@limiter.limit("30 per hour")
+def update_profile_route(profile_id):
+    user = require_auth()
+    body = request.get_json(force=True, silent=True)
+    profile = profiles.update_profile(profile_id, user["id"], body)
+    if profile is None:
+        return jsonify({"error": "You can only edit households you created."}), 403
+    return jsonify({k: v for k, v in profile.items() if k != "seed"})
+
+
 @app.delete("/api/profiles/<profile_id>")
 def delete_profile_route(profile_id):
     user = require_auth()
@@ -289,12 +319,27 @@ def delete_profile_route(profile_id):
     return jsonify({"deleted": profile_id})
 
 
-# ---------------------------------------------------------------------------
 # Household data, scoped to the requested profile
-# ---------------------------------------------------------------------------
+def _today():
+    """The caller's local date (sent by the browser as ?today=), accepted only
+    if it is within a day of the server's UTC date; otherwise the server's date"""
+    server = datetime.now(timezone.utc).date()
+    raw = request.args.get("today")
+    if raw:
+        try:
+            claimed = date.fromisoformat(raw)
+        except ValueError:
+            return server
+        if abs((claimed - server).days) <= 1:
+            return claimed
+    return server
+
+
 def _load_authorized_profile():
     """Returns (profile, household_data) for ?profile=<id>, checked
-    against the current user's access. Raises AuthError on denial."""
+    against the current user's access. household_data holds the simulated
+    readings for the demo household and is None for user households, whose
+    numbers come from the usage they entered. Raises AuthError on denial"""
     profile_id = request.args.get("profile", profiles.DEFAULT_PROFILE_ID)
     profile = profiles.get_profile(profile_id)
     user_id = g.user["id"] if g.get("user") else None
@@ -304,8 +349,21 @@ def _load_authorized_profile():
     if not profiles.can_view(profile, user_id):
         raise auth.AuthError("You don't have access to this household.", status=403)
 
-    household = profiles.get_household_data(profile_id)
+    household = profiles.get_household_data(profile_id) if profiles.is_simulated(profile) else None
     return profile, household
+
+
+def _forecast_for(profile, household):
+    if household is None:
+        return usage.forecast(storage_usage(profile), profile["lat"], profile["lon"], profile["tier1_limit_gal"], _today())
+    f = build_forecast(household["readings"], profile["lat"], profile["lon"], profile["tier1_limit_gal"])
+    f["source"] = "simulated"
+    f["has_data"] = True
+    return f
+
+
+def storage_usage(profile):
+    return storage.list_usage(profile["id"])
 
 
 def _dashboard_data(readings, tier1_limit_gal):
@@ -340,12 +398,18 @@ def health():
 @app.get("/api/dashboard")
 def dashboard():
     profile, household = _load_authorized_profile()
-    return jsonify(_dashboard_data(household["readings"], profile["tier1_limit_gal"]))
+    if household is None:
+        return jsonify(usage.dashboard(storage_usage(profile), profile["tier1_limit_gal"], _today()))
+    data = _dashboard_data(household["readings"], profile["tier1_limit_gal"])
+    data.update(source="simulated", has_data=True)
+    return jsonify(data)
 
 
 @app.get("/api/anomalies")
 def anomalies():
     profile, household = _load_authorized_profile()
+    if household is None:
+        return jsonify(usage.anomalies())
     found = household["anomalies"]
 
     days_back = request.args.get("days", type=int)
@@ -365,6 +429,7 @@ def anomalies():
     weekly_series = [weekly_counts.get(w, 0) for w in range(9)]  # 60 days is just under 9 weeks
 
     return jsonify({
+        "source": "simulated",
         "model": "IsolationForest (scikit-learn), n_estimators=200, contamination=0.02",
         "trained_on_readings": len(household["readings"]),
         "anomalies_found": len(found),
@@ -376,21 +441,73 @@ def anomalies():
 @app.get("/api/forecast")
 def forecast():
     profile, household = _load_authorized_profile()
-    return jsonify(build_forecast(household["readings"], profile["lat"], profile["lon"], profile["tier1_limit_gal"]))
+    return jsonify(_forecast_for(profile, household))
+
+
+def _score_for(profile, household, f):
+    if household is None:
+        return usage.score(storage_usage(profile), f, _today())
+    return compute_score(f, len(household["anomalies"]))
 
 
 @app.get("/api/score")
 def score():
     profile, household = _load_authorized_profile()
-    f = build_forecast(household["readings"], profile["lat"], profile["lon"], profile["tier1_limit_gal"])
-    return jsonify(compute_score(f, len(household["anomalies"])))
+    return jsonify(_score_for(profile, household, _forecast_for(profile, household)))
 
 
 @app.get("/api/savings")
 def savings():
     profile, household = _load_authorized_profile()
-    f = build_forecast(household["readings"], profile["lat"], profile["lon"], profile["tier1_limit_gal"])
-    return jsonify(compute_savings(f, len(household["anomalies"]), profile["household_size"]))
+    f = _forecast_for(profile, household)
+    anomaly_count = len(household["anomalies"]) if household is not None else None
+    return jsonify(compute_savings(f, anomaly_count, profile["household_size"]))
+
+
+# Usage the owner enters by hand or by CSV
+def _owned_profile(profile_id):
+    user = require_auth()
+    profile = profiles.get_profile(profile_id)
+    if not profile or profile.get("owner_id") != user["id"]:
+        raise auth.AuthError("You can only change usage for households you created.", status=403)
+    return profile
+
+
+@app.get("/api/usage")
+def get_usage():
+    profile, household = _load_authorized_profile()
+    if household is not None:
+        return jsonify({"source": "simulated", "count": 0, "entries": []})
+    result = usage.history(profile["id"])
+    result["source"] = "manual"
+    return jsonify(result)
+
+
+@app.put("/api/usage")
+@limiter.limit("60 per hour")
+def put_usage():
+    profile = _owned_profile(request.args.get("profile", ""))
+    body = request.get_json(force=True, silent=True) or {}
+    try:
+        saved = usage.add_entries(profile["id"], body.get("entries"), _today())
+    except usage.UsageError as e:
+        return jsonify({"error": str(e)}), 400
+    return jsonify({"saved": saved})
+
+
+@app.delete("/api/usage")
+@limiter.limit("60 per hour")
+def delete_usage_route():
+    profile = _owned_profile(request.args.get("profile", ""))
+    if request.args.get("all") == "true":
+        usage.clear(profile["id"])
+        return jsonify({"cleared": True})
+    day = request.args.get("date", "")
+    try:
+        usage.remove_days(profile["id"], [day])
+    except usage.UsageError as e:
+        return jsonify({"error": str(e)}), 400
+    return jsonify({"deleted": day})
 
 
 @app.get("/api/cnn-labels")
@@ -416,17 +533,40 @@ def ask():
         return jsonify({"error": "Keep questions under 500 characters."}), 400
 
     profile, household = _load_authorized_profile()
-    f = build_forecast(household["readings"], profile["lat"], profile["lon"], profile["tier1_limit_gal"])
-    anomaly_count = len(household["anomalies"])
+    f = _forecast_for(profile, household)
+    if household is None:
+        daily = storage_usage(profile)
+        anomaly_count = None
+        dash = usage.dashboard(daily, profile["tier1_limit_gal"], _today())
+    else:
+        anomaly_count = len(household["anomalies"])
+        dash = _dashboard_data(household["readings"], profile["tier1_limit_gal"])
     ctx = {
         "profile_name": profile["name"],
-        "dashboard": _dashboard_data(household["readings"], profile["tier1_limit_gal"]),
+        "has_data": f["has_data"],
+        "manual": household is None,
+        "days_logged": dash.get("days_logged"),
+        "dashboard": dash,
         "forecast": f,
         "anomaly_count": anomaly_count,
-        "score": compute_score(f, anomaly_count),
+        "score": _score_for(profile, household, f),
         "savings": compute_savings(f, anomaly_count, profile["household_size"]),
     }
     return jsonify(assistant.answer_question(question, ctx))
+
+
+def _gemini_startup_check():
+    if not os.environ.get("GEMINI_API_KEY", "").strip() or os.environ.get("GEMINI_STARTUP_CHECK", "1") != "1":
+        return
+    result = assistant.self_check()
+    if result["ok"]:
+        log.info("Gemini self-check passed in %ss", result["seconds"])
+    else:
+        log.warning("Gemini self-check FAILED: %s", result["source"])
+
+
+if not app.config.get("TESTING") and os.environ.get("PYTEST_CURRENT_TEST") is None and "pytest" not in sys.modules:
+    threading.Thread(target=_gemini_startup_check, daemon=True).start()
 
 
 if __name__ == "__main__":

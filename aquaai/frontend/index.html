@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AquaAI</title>
+<link rel="icon" type="image/svg+xml" href="logo.svg">
+<link rel="icon" type="image/png" sizes="64x64" href="logo-64.png">
+<link rel="apple-touch-icon" href="logo-180.png">
+<script src="js/theme.js"></script>
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/styles.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tensorflow/4.15.0/tf.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.1/dist/mobilenet.min.js"></script>
+</head>
+<body>
+
+<div class="shell">
+  <aside class="icon-rail">
+    <button class="rail-btn active" data-tab="dashboard" title="Dashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="12" width="4" height="8"/><rect x="10" y="7" width="4" height="13"/><rect x="16" y="3" width="4" height="17"/></svg>
+    </button>
+    <button class="rail-btn" data-tab="leaks" title="Leak Detective">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3 C 12 3 6 11 6 15.5 C 6 19 8.7 21 12 21 C 15.3 21 18 19 18 15.5 C 18 11 12 3 12 3 Z"/></svg>
+    </button>
+    <button class="rail-btn" data-tab="forecast" title="Forecast">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 16 L10 10 L14 14 L20 6"/><circle cx="20" cy="6" r="1.6" fill="currentColor" stroke="none"/></svg>
+    </button>
+    <button class="rail-btn" data-tab="report" title="Report Waste">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7 L9.5 4 H14.5 L16 7"/><circle cx="12" cy="13.5" r="3.5"/></svg>
+    </button>
+    <button class="rail-btn" data-tab="assistant" title="Ask AquaAI">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5 H20 V16 H9 L5 19.5 V16 H4 Z"/></svg>
+    </button>
+    <button class="rail-btn" data-tab="usage" title="Add data">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M12 8.5v7M8.5 12h7"/></svg>
+    </button>
+    <button class="rail-btn" data-tab="households" title="Households">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v10h13V10"/><path d="M10 20v-5.5h4V20"/></svg>
+    </button>
+    <button class="rail-btn" data-tab="settings" title="Settings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </button>
+    <div class="rail-spacer"></div>
+    <a href="landing.html" class="rail-btn" title="About AquaAI">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><circle cx="12" cy="7.5" r="1" fill="currentColor" stroke="none"/></svg>
+    </a>
+  </aside>
+
+  <div class="content-col">
+    <header class="top">
+      <div class="top-inner">
+        <a href="landing.html" class="wordmark"><img class="brand-logo" src="logo.svg" width="34" height="34" alt="">AquaAI</a>
+        <div class="account-area" id="account-area">
+          <button class="link-btn-light" id="signin-btn">Sign in</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="auth-page" id="auth-form" hidden role="dialog" aria-modal="true" aria-labelledby="auth-title">
+      <aside class="auth-side">
+        <a href="landing.html" class="wordmark"><img class="brand-logo" src="logo.svg" width="34" height="34" alt="">AquaAI</a>
+        <div class="auth-side-copy">
+          <h2>Know where every <em>gallon</em> goes.</h2>
+          <ul>
+            <li>Spot leaks before the bill shows them</li>
+            <li>Forecast next month's usage</li>
+            <li>Ask plain-English questions about your water</li>
+          </ul>
+        </div>
+      </aside>
+      <main class="auth-main">
+        <button class="auth-close" id="auth-cancel-btn" aria-label="Close">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6 L18 18 M18 6 L6 18"/></svg>
+        </button>
+        <form class="auth-card" id="auth-form-el" novalidate>
+          <h1 id="auth-title">Welcome back</h1>
+          <p class="auth-sub" id="auth-sub">Sign in to manage your households.</p>
+
+          <button type="button" class="auth-google" id="auth-google-btn" hidden>
+            <svg viewBox="0 0 48 48" width="20" height="20" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9.1 3.6l6.8-6.8C35.8 2.4 30.3 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.9 6.1C12.4 13.5 17.7 9.5 24 9.5z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.5 5.8c4.4-4.1 7.1-10.1 7.1-17.5z"/><path fill="#FBBC05" d="M10.5 28.7c-.5-1.5-.8-3-.8-4.7s.3-3.2.8-4.7l-7.9-6.1C.9 16.4 0 20.1 0 24s.9 7.6 2.6 10.8l7.9-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.5-5.8c-2.1 1.4-4.9 2.3-8.4 2.3-6.3 0-11.6-4-13.5-9.8l-7.9 6.1C6.5 42.6 14.6 48 24 48z"/></svg>
+            Continue with Google
+          </button>
+          <div class="auth-or" id="auth-or" hidden><span>or</span></div>
+
+          <label class="auth-field">
+            <span>Email</span>
+            <input type="email" id="auth-email" placeholder="you@example.com" autocomplete="email" required>
+          </label>
+          <label class="auth-field">
+            <span class="auth-field-row"><span>Password</span><button type="button" class="auth-text-btn" id="auth-forgot-btn" hidden>Forgot password?</button></span>
+            <span class="auth-pw">
+              <input type="password" id="auth-password" placeholder="At least 8 characters" autocomplete="current-password" required>
+              <button type="button" class="auth-text-btn" id="auth-pw-toggle" aria-label="Show password">Show</button>
+            </span>
+          </label>
+
+          <div class="auth-msg" id="auth-error" role="alert"></div>
+          <button type="submit" class="auth-submit" id="auth-submit-btn">Sign in</button>
+
+          <p class="auth-switch"><span id="auth-switch-text">New to AquaAI?</span> <button type="button" class="auth-text-btn" id="auth-switch-btn">Create an account</button></p>
+        </form>
+      </main>
+    </div>
+
+    <div class="auth-page" id="verify-page" hidden role="dialog" aria-modal="true" aria-labelledby="verify-title">
+      <aside class="auth-side">
+        <a href="landing.html" class="wordmark"><img class="brand-logo" src="logo.svg" width="34" height="34" alt="">AquaAI</a>
+        <div class="auth-side-copy">
+          <h2>One quick <em>step</em> left.</h2>
+          <ul>
+            <li>Confirming your email keeps your households private</li>
+            <li>It also lets us send you leak and budget alerts</li>
+          </ul>
+        </div>
+      </aside>
+      <main class="auth-main">
+        <div class="auth-card">
+          <div class="verify-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3.5 7l8.5 6 8.5-6"/></svg>
+          </div>
+          <h1 id="verify-title">Check your email</h1>
+          <p class="auth-sub">We sent a verification link to <b id="verify-email"></b>. Open it, then come back to this page.</p>
+          <div class="auth-msg" id="verify-note" role="status"></div>
+          <button type="button" class="auth-submit" id="verify-check-btn">I've verified my email</button>
+          <button type="button" class="auth-secondary" id="verify-resend-btn">Resend email</button>
+          <p class="auth-fine">Can't find it? Check your spam folder.</p>
+          <p class="auth-switch"><button type="button" class="auth-text-btn" id="verify-signout-btn">Use a different email</button> &nbsp;·&nbsp; <button type="button" class="auth-text-btn" id="verify-skip-btn">Skip for now</button></p>
+        </div>
+      </main>
+    </div>
+
+    <div class="profile-bar">
+      <div class="profile-bar-inner">
+        <label for="profile-select">Household</label>
+        <select id="profile-select"></select>
+        <button class="link-btn" id="manage-households-btn" hidden>Manage households</button>
+        <span class="hint" id="signin-hint" hidden>Sign in to add a household</span>
+      </div>
+    </div>
+
+    <div class="chip-row">
+      <span class="chip" id="chip-household">Household</span>
+      <span class="chip chip-removable" id="chip-days" hidden></span>
+      <span class="chip chip-removable" id="chip-confirmed" hidden></span>
+      <button class="chip chip-action" id="open-filters-btn">Filters</button>
+    </div>
+
+    <main>
+
+  <!-- DASHBOARD -->
+  <section class="page active" id="page-dashboard">
+    <div class="page-head">
+      <h2>Today's water use</h2>
+      <p>Whichever household is selected above, watched in real time against its daily budget, with an AI check running quietly in the background for anything unusual.</p>
+    </div>
+    <div id="dash-banner"></div>
+
+    <section class="block hero-block">
+      <div class="tank-wrap" id="day-tank"></div>
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="hero-num"><span id="dash-total">0</span><small>gal</small></div>
+          <div class="hero-label" id="dash-sub">used today</div>
+          <div class="bar-track"><div class="bar-fill" id="dash-gauge" style="width:0%"></div></div>
+        </div>
+        <div class="hero-stat">
+          <div class="score-line">
+            <div class="score-badge"><span class="hero-num" id="score-val">0</span></div>
+            <div><div class="of">out of 100</div><div class="hero-label" style="margin-top:2px">Water Score</div></div>
+          </div>
+          <div class="score-detail" id="score-detail"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="block">
+      <h3>Hourly breakdown</h3>
+      <div id="hourlyChart-wrap"><canvas id="hourlyChart"></canvas></div>
+    </section>
+
+    <section class="block">
+      <h3>Last 7 days</h3>
+      <div id="sevenDayChart-wrap"><canvas id="sevenDayChart"></canvas></div>
+    </section>
+  </section>
+
+  <!-- LEAKS -->
+  <section class="page" id="page-leaks">
+    <div class="page-head">
+      <h2>Leak Detective</h2>
+      <p>An Isolation Forest model, trained on 60 days of this household's own 15 minute usage history, flags intervals that don't fit its learned normal. No fixed gallons per minute threshold involved.</p>
+    </div>
+    <section class="block">
+      <h3>Anomalies by week</h3>
+      <div id="weeklyChart-wrap"><canvas id="weeklyChart"></canvas></div>
+    </section>
+    <section class="block">
+      <table>
+        <thead><tr><th>Day</th><th>Hour</th><th>Gallons, 15 min</th><th>Anomaly score</th></tr></thead>
+        <tbody id="anomaly-rows"><tr><td colspan="4" class="loading">Loading model results</td></tr></tbody>
+      </table>
+      <div class="model-note" id="model-note"></div>
+    </section>
+  </section>
+
+  <!-- FORECAST -->
+  <section class="page" id="page-forecast">
+    <div class="page-head">
+      <h2>Forecast and savings</h2>
+      <p>A seven day projection corrected against the real National Weather Service forecast, plus how close this household is to Tier 2 pricing.</p>
+    </div>
+    <div id="forecast-banner"></div>
+
+    <section class="block">
+      <h3>Seven day projected usage</h3>
+      <div id="forecastChart-wrap"><canvas id="forecastChart"></canvas></div>
+    </section>
+
+    <section class="block">
+      <h3>Tier 1 budget</h3>
+      <div class="ledger">
+        <div class="ledger-row"><span class="l">Gallons used this month</span><span class="v" id="fc-used">0</span></div>
+        <div class="ledger-row"><span class="l">Gallons left in Tier 1</span><span class="v" id="fc-remaining">0</span></div>
+        <div class="ledger-row"><span class="l">Projected month end bill</span><span class="v" id="fc-bill">$0</span></div>
+      </div>
+      <div id="tierChart-wrap" style="max-width:200px;margin-top:18px"><canvas id="tierChart"></canvas></div>
+    </section>
+
+    <section class="block">
+      <h3>Saved this year</h3>
+      <div class="ledger">
+        <div class="ledger-row"><span class="l">Saved this month vs. the regional average</span><span class="v" id="sv-month">0</span></div>
+        <div class="ledger-row"><span class="l">Projected gallons saved this year</span><span class="v" id="sv-year">0</span></div>
+        <div class="ledger-row"><span class="l">Projected dollars saved this year</span><span class="v" id="sv-dollars">$0</span></div>
+      </div>
+      <div class="badges-row" id="badges-row"></div>
+    </section>
+
+    <section class="block">
+      <h3>What actually helps</h3>
+      <ul class="tips" id="tips-list"></ul>
+    </section>
+  </section>
+
+  <!-- REPORT -->
+  <section class="page" id="page-report">
+    <div class="page-head">
+      <h2>Report public water waste</h2>
+      <p>Spot a broken sprinkler or an open hydrant? Upload a photo. A MobileNetV2 network classifies it entirely in your browser; no image ever leaves your device. AquaAI drafts the report for you.</p>
+    </div>
+    <section class="block">
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <h4>Photo</h4>
+            <div class="drop" id="drop-zone">Click to choose a photo of the water waste</div>
+            <input type="file" id="file-input" accept="image/*" style="display:none">
+            <div id="cnn-result"></div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <h4>Location</h4>
+            <button class="btn" id="loc-btn">Use my current location</button>
+            <div id="loc-result" class="loc-result"></div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <h4>Submit</h4>
+            <button class="btn" id="submit-btn" disabled>Generate report</button>
+            <div id="report-result"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </section>
+
+  <!-- ASK AQUAAI -->
+  <section class="page" id="page-assistant">
+    <div class="page-head">
+      <h2>Ask AquaAI</h2>
+      <p>A chat assistant grounded in this household's real usage data. It answers from actual numbers, not a guess, and says plainly when it's working offline.</p>
+    </div>
+    <section class="block">
+      <div class="suggested">
+        <button class="suggest-btn">Why is my bill high?</button>
+        <button class="suggest-btn">Do I have any leaks?</button>
+        <button class="suggest-btn">How close am I to Tier 2?</button>
+        <button class="suggest-btn">How much have I saved?</button>
+      </div>
+      <div class="chat-window" id="chat-window">
+        <div class="msg bot">Ask a question about your water use. I answer from your actual dashboard, forecast, and leak data.</div>
+      </div>
+      <form class="chat-input-row" id="chat-form">
+        <input type="text" id="chat-input" placeholder="Ask a question about your water use" autocomplete="off">
+        <button class="btn" type="submit">Send</button>
+      </form>
+    </section>
+  </section>
+
+  <section class="page" id="page-usage">
+    <div class="page-head">
+      <h2>Add data</h2>
+      <p>Log how much water a household uses. Every number in AquaAI is worked out from what you enter here.</p>
+    </div>
+
+    <section class="block" id="usage-locked" hidden>
+      <div class="set-row">
+        <div class="set-text"><b id="usage-locked-title"></b><span id="usage-locked-note"></span></div>
+        <button class="btn" id="usage-locked-btn" type="button"></button>
+      </div>
+    </section>
+
+    <div id="usage-main" hidden>
+      <section class="block">
+        <h3>Enter a day</h3>
+        <p class="usage-for">Adding data for <b id="usage-for"></b></p>
+        <form class="usage-form" id="usage-form" novalidate>
+          <label class="pf-field"><span>Date</span><input type="date" id="usage-date"></label>
+          <label class="pf-field"><span>Amount used</span><input type="number" id="usage-amount" min="0" step="any" inputmode="decimal" placeholder="For example, 180"></label>
+          <label class="pf-field"><span>Unit</span>
+            <select id="usage-unit"><option value="gal">Gallons</option><option value="ccf">CCF (100 cubic feet)</option></select></label>
+          <button class="btn" id="usage-save" type="submit">Save</button>
+        </form>
+        <div class="set-msg" id="usage-msg" role="status"></div>
+        <p class="set-fine">Use the total for the whole day. You can get it from your water meter (today's reading minus yesterday's) or from your utility's online account. Bills usually list CCF, and 1 CCF is about 748 gallons. Saving a date you already entered replaces it.</p>
+      </section>
+
+      <section class="block">
+        <h3>Upload a CSV</h3>
+        <p class="set-fine" style="margin-top:0">One row per day with two columns, date then gallons, for example <code>2026-10-15,180</code>. A header row is fine. Dates can be 2026-10-15 or 10/15/2026.</p>
+        <div class="set-inline">
+          <input type="file" id="csv-file" accept=".csv,.txt,text/csv,text/plain">
+          <button class="btn" id="csv-upload" type="button" disabled>Upload</button>
+        </div>
+        <div class="set-msg" id="csv-msg" role="status"></div>
+      </section>
+
+      <section class="block">
+        <div class="hh-toolbar">
+          <h3 style="margin:0">Logged days <span class="hh-count" id="usage-count"></span></h3>
+          <button class="btn btn-quiet btn-sm btn-delete" id="usage-clear" type="button" hidden>Clear all data</button>
+        </div>
+        <table>
+          <thead><tr><th>Date</th><th>Gallons</th><th></th></tr></thead>
+          <tbody id="usage-rows"></tbody>
+        </table>
+      </section>
+    </div>
+  </section>
+
+  <section class="page" id="page-households">
+    <div class="page-head">
+      <h2>Households</h2>
+      <p>Add the homes you track, change their details, and switch between them.</p>
+    </div>
+
+    <section class="block" id="hh-signed-out" hidden>
+      <div class="set-row">
+        <div class="set-text"><b>Sign in to manage households</b><span>The demo household is available to everyone. Sign in to add your own.</span></div>
+        <button class="btn" id="hh-signin-btn" type="button">Sign in</button>
+      </div>
+    </section>
+
+    <section class="block" id="hh-signed-in" hidden>
+      <div class="hh-toolbar">
+        <span class="hh-count" id="hh-count"></span>
+        <button class="btn" id="hh-add-btn" type="button">Add household</button>
+      </div>
+
+      <form class="hh-form" id="hh-form" novalidate hidden>
+        <h3 id="hh-form-title">Add a household</h3>
+        <div class="hh-fields">
+          <label class="pf-field pf-name"><span>Household name</span>
+            <input type="text" id="pf-name" placeholder="For example, Grandma's house" maxlength="60"></label>
+          <label class="pf-field pf-place"><span>City or ZIP code</span>
+            <input type="text" id="pf-city" list="pf-city-list" placeholder="Dublin, CA or 94568" autocomplete="off"></label>
+          <datalist id="pf-city-list"></datalist>
+          <label class="pf-field pf-small"><span>People</span>
+            <input type="number" id="pf-size" min="1" max="20" value="4"></label>
+          <label class="pf-field pf-tier"><span>Tier 1 limit (gal/month)</span>
+            <input type="number" id="pf-tier" min="500" step="500" value="4500"></label>
+        </div>
+        <div class="hh-form-actions">
+          <button class="btn" id="pf-save-btn" type="submit">Save household</button>
+          <button class="link-btn" id="pf-cancel-btn" type="button">Cancel</button>
+        </div>
+        <div class="set-msg" id="pf-error" role="alert"></div>
+      </form>
+    </section>
+
+    <section class="block">
+      <div class="hh-list" id="hh-list"></div>
+      <p class="set-fine">New households start with no data, so every number is zero until you add usage on the Add data tab. Only the Demo household uses generated sample data. The weather forecast is real.</p>
+    </section>
+  </section>
+
+  <section class="page" id="page-settings">
+    <div class="page-head">
+      <h2>Settings</h2>
+      <p>Manage your account, how AquaAI reaches you, and how it looks on this device.</p>
+    </div>
+
+    <section class="block" id="set-account">
+      <h3>Account</h3>
+      <div id="set-signed-out" class="set-row" hidden>
+        <div class="set-text"><b>You're not signed in</b><span>Sign in to manage your account and notifications.</span></div>
+        <button class="btn" id="set-signin-btn" type="button">Sign in</button>
+      </div>
+      <div id="set-signed-in" hidden>
+        <div class="set-row">
+          <div class="set-text"><b id="set-email"></b><span id="set-email-note"></span></div>
+          <button class="btn btn-quiet" id="set-signout-btn" type="button">Sign out</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="block" id="set-appearance">
+      <h3>Appearance</h3>
+      <div class="set-row">
+        <div class="set-text"><b>Theme</b><span>Saved on this device only.</span></div>
+        <div class="seg" role="radiogroup" aria-label="Theme">
+          <label><input type="radio" name="theme" value="light"><span>Light</span></label>
+          <label><input type="radio" name="theme" value="dark"><span>Dark</span></label>
+          <label><input type="radio" name="theme" value="system"><span>System</span></label>
+        </div>
+      </div>
+    </section>
+
+    <section class="block" id="set-notify-block" hidden>
+      <h3>Notifications</h3>
+      <label class="set-row set-toggle"><span class="set-text"><b>Leak alerts</b><span>When the Leak Detective flags unusual overnight or constant flow.</span></span><input type="checkbox" class="switch" data-setting="leak_alerts"></label>
+      <label class="set-row set-toggle"><span class="set-text"><b>Budget alerts</b><span>When a household nears its daily budget or the Tier 2 price line.</span></span><input type="checkbox" class="switch" data-setting="budget_alerts"></label>
+      <label class="set-row set-toggle"><span class="set-text"><b>Weekly summary</b><span>A short recap of the week's usage and savings.</span></span><input type="checkbox" class="switch" data-setting="weekly_summary"></label>
+      <div class="set-msg" id="set-notify-msg" role="status"></div>
+      <p class="set-fine">Alerts go to your account email, <span id="set-notify-email"></span>. Your choices are saved, but AquaAI isn't sending alerts yet; they'll start once delivery is switched on.</p>
+    </section>
+
+    <section class="block set-danger" id="set-danger-block" hidden>
+      <h3>Delete account</h3>
+      <p class="set-fine">This permanently deletes your account and every household you created, along with their data. It can't be undone.</p>
+      <form class="set-inline" id="set-delete-form" novalidate>
+        <input type="text" id="set-delete-input" placeholder="Type DELETE to confirm" autocomplete="off" aria-label="Type DELETE to confirm">
+        <button class="btn btn-danger" id="set-delete-btn" type="submit" disabled>Delete my account</button>
+      </form>
+      <div class="set-msg" id="set-delete-msg" role="alert"></div>
+    </section>
+  </section>
+
+</main>
+
+  </div>
+
+  <aside class="filter-panel" id="filter-panel" hidden>
+    <div class="filter-panel-head">
+      <h3>Filters</h3>
+      <button class="link-btn" id="close-filters-btn">Close</button>
+    </div>
+    <p class="filter-panel-note">Applies to the Leak Detective tab.</p>
+    <div class="filter-group">
+      <label for="filter-days">Show anomalies from</label>
+      <select id="filter-days">
+        <option value="">All 60 days</option>
+        <option value="30">Last 30 days</option>
+        <option value="7">Last 7 days</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <label class="filter-checkbox"><input type="checkbox" id="filter-confirmed"> Confirmed leaks only</label>
+    </div>
+    <button class="btn" id="apply-filters-btn">Apply</button>
+  </aside>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/charttheme.js"></script>
+<script src="js/tank.js"></script>
+<script src="js/dashboard.js"></script>
+<script src="js/leaks.js"></script>
+<script src="js/forecast.js"></script>
+<script src="js/report.js"></script>
+<script src="js/assistant.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/settings.js"></script>
+<script src="js/usage.js"></script>
+<script src="js/households.js"></script>
+<script src="js/profile.js"></script>
+<script src="js/filters.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

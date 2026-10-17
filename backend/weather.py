@@ -1,8 +1,8 @@
 """
 Real call to the National Weather Service (api.weather.gov — free, no key
 required) used to weather-correct the 7-day usage forecast. Falls back to a
-seasonally reasonable synthetic forecast if the network call fails, so a
-live demo never breaks just because a judge's wifi blocks the request.
+seasonally reasonable synthetic forecast if the network call fails, so the
+forecast keeps working when the service is unreachable.
 """
 
 import random
@@ -17,7 +17,7 @@ def fetch_noaa_forecast(lat, lon):
     try:
         points = requests.get(
             f"https://api.weather.gov/points/{lat},{lon}",
-            headers={"User-Agent": "AquaAI (student project)"},
+            headers={"User-Agent": "AquaAI"},
             timeout=5,
         ).json()
         forecast_url = points["properties"]["forecast"]
@@ -39,15 +39,18 @@ def fetch_noaa_forecast(lat, lon):
 
 
 def build_forecast(readings, lat, lon, tier1_limit_gal):
+    """Forecast for the simulated demo household, built from its fake readings."""
     daily_totals = [round(sum(r["gallons"] for r in readings if r["day"] == d), 1) for d in range(60)]
     recent_30 = daily_totals[-30:]
     avg_daily = sum(recent_30) / len(recent_30)
-
-    weather = fetch_noaa_forecast(lat, lon)
-    highs = weather["daily_highs"]
-
     today_of_month = datetime.now().day
     month_used_so_far = sum(recent_30[:today_of_month]) if today_of_month <= len(recent_30) else sum(recent_30)
+    return forecast_from_daily(avg_daily, month_used_so_far, today_of_month, DAYS_IN_MONTH, lat, lon, tier1_limit_gal)
+
+
+def forecast_from_daily(avg_daily, month_used_so_far, today_of_month, days_in_month, lat, lon, tier1_limit_gal):
+    weather = fetch_noaa_forecast(lat, lon)
+    highs = weather["daily_highs"]
 
     projected_daily = []
     running_total = month_used_so_far
@@ -63,7 +66,7 @@ def build_forecast(readings, lat, lon, tier1_limit_gal):
 
     month_end_total = round(
         month_used_so_far + sum(d["gallons"] for d in projected_daily)
-        + avg_daily * max(0, DAYS_IN_MONTH - today_of_month - 7), 1
+        + avg_daily * max(0, days_in_month - today_of_month - 7), 1
     )
     tier2_gallons = max(0, month_end_total - tier1_limit_gal)
     bill_estimate = round(min(month_end_total, tier1_limit_gal) * TIER_1_RATE + tier2_gallons * TIER_2_RATE, 2)

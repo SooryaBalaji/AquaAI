@@ -5,10 +5,15 @@ let authToken = localStorage.getItem('aquaai_token') || null;
 let currentUser = null;
 let tokenProvider = null;
 
-const PROFILE_SCOPED_PATHS = ['/api/dashboard', '/api/anomalies', '/api/forecast', '/api/score', '/api/savings', '/api/ask'];
+const PROFILE_SCOPED_PATHS = ['/api/dashboard', '/api/anomalies', '/api/forecast', '/api/score', '/api/savings', '/api/ask', '/api/usage'];
 
 function esc(value) {
   return String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function localDate(d = new Date()) {
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
 function needsProfile(path) {
@@ -38,7 +43,7 @@ async function currentToken() {
 async function getJSON(path, opts = {}) {
   let url = API + path;
   if (needsProfile(path)) {
-    url += (path.includes('?') ? '&' : '?') + 'profile=' + encodeURIComponent(currentProfileId);
+    url += (path.includes('?') ? '&' : '?') + 'profile=' + encodeURIComponent(currentProfileId) + '&today=' + localDate();
   }
   const headers = Object.assign({}, opts.headers || {});
   const token = await currentToken();

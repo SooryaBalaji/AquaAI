@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AquaAI</title>
+<link rel="icon" type="image/svg+xml" href="logo.svg">
+<link rel="icon" type="image/png" sizes="64x64" href="logo-64.png">
+<link rel="apple-touch-icon" href="logo-180.png">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/landing.css">
+</head>
+<body>
+
+<header class="site-header" id="site-header">
+  <nav class="container site-nav" aria-label="Primary">
+    <a href="landing.html" class="brand" aria-label="AquaAI home">
+      <img class="brand-logo" src="logo.svg" width="34" height="34" alt="">
+      AquaAI
+    </a>
+    <ul class="nav-links">
+      <li><a href="#product">Product</a></li>
+      <li><a href="#how-it-works">How it works</a></li>
+      <li><a href="#faq">FAQ</a></li>
+    </ul>
+    <a class="nav-signin" href="/app#signin">Sign in</a>
+    <a class="nav-cta" href="/app#signup">Get started</a>
+  </nav>
+</header>
+
+<div class="hero-shell">
+  <div class="hero-sun-wash"></div>
+  <div class="container hero-layout">
+    <div class="hero-copy">
+      <span class="hero-kicker"><span class="hero-kicker-dot"></span>Household water intelligence</span>
+      <h1 class="hero-title">Know your water <span>before the bill does.</span></h1>
+      <p class="hero-lede">AquaAI watches a household's water use through the day, catches leaks a fixed threshold would miss, and tells you the dollar cost of doing nothing about it.</p>
+      <div class="hero-actions">
+        <a class="action-button action-button--primary" href="/app#signup">Create your account</a>
+        <a class="action-button action-button--ghost" href="/app">Try the demo</a>
+      </div>
+      <div class="hero-footnote">
+        <img class="brand-logo" src="logo.svg" width="34" height="34" alt="">
+        <p>A student project to make household water use easier to understand.</p>
+      </div>
+    </div>
+
+    <div class="scene">
+      <svg viewBox="0 0 920 760" role="img" aria-labelledby="scene-title scene-desc">
+        <title id="scene-title">A house with its underground water pipe</title>
+        <desc id="scene-desc">A cutaway of a house on a green hill. A water pipe runs under the ground past a meter, and a small leak drips from the pipe on the right.</desc>
+        <defs>
+          <linearGradient id="skyWash" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#F9FDFF"/><stop offset=".42" stop-color="#B9E6FF"/><stop offset="1" stop-color="#7EC8F3"/>
+          </linearGradient>
+          <linearGradient id="sunGlow" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#FFF5AD"/><stop offset="1" stop-color="#FFC85A"/>
+          </linearGradient>
+          <linearGradient id="hillFar" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#BFE6C6"/><stop offset="1" stop-color="#86C4A7"/>
+          </linearGradient>
+          <linearGradient id="hillNear" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#76C993"/><stop offset="1" stop-color="#3F9F7E"/>
+          </linearGradient>
+          <linearGradient id="soil" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#D9AE80"/><stop offset="1" stop-color="#B98456"/>
+          </linearGradient>
+          <linearGradient id="pipe" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stop-color="#F2FBFF"/><stop offset="1" stop-color="#BFE4F7"/>
+          </linearGradient>
+          <clipPath id="frame"><rect x="0" y="0" width="920" height="760" rx="36"/></clipPath>
+          <g id="flower">
+            <g fill="currentColor" stroke="#294C62" stroke-width="2.5">
+              <ellipse cx="0" cy="-13" rx="7.5" ry="11"/>
+              <ellipse cx="0" cy="-13" rx="7.5" ry="11" transform="rotate(72)"/>
+              <ellipse cx="0" cy="-13" rx="7.5" ry="11" transform="rotate(144)"/>
+              <ellipse cx="0" cy="-13" rx="7.5" ry="11" transform="rotate(216)"/>
+              <ellipse cx="0" cy="-13" rx="7.5" ry="11" transform="rotate(288)"/>
+            </g>
+            <circle r="6.5" fill="#FFF4A4" stroke="#294C62" stroke-width="2.5"/>
+          </g>
+        </defs>
+
+        <g clip-path="url(#frame)">
+          <rect width="920" height="760" fill="url(#skyWash)"/>
+
+          <g class="s-sun">
+            <g stroke="#FFD166" stroke-width="7" stroke-linecap="round">
+              <line x1="720" y1="48" x2="720" y2="66"/><line x1="800" y1="86" x2="788" y2="98"/>
+              <line x1="838" y1="160" x2="820" y2="160"/><line x1="640" y1="86" x2="652" y2="98"/>
+            </g>
+            <circle cx="720" cy="160" r="60" fill="url(#sunGlow)" stroke="#294C62" stroke-width="3.5"/>
+          </g>
+
+          <g transform="translate(70 120)"><g class="s-cloud-a">
+            <path d="M0 62 Q0 34 30 34 Q40 8 74 12 Q106 2 118 32 Q148 30 148 62 Z" fill="#fff" stroke="#6C8AA0" stroke-width="3" stroke-linejoin="round"/>
+          </g></g>
+          <g transform="translate(300 210)"><g class="s-cloud-b">
+            <path d="M0 52 Q0 28 26 28 Q34 6 62 10 Q90 2 100 26 Q124 26 124 52 Z" fill="#fff" stroke="#6C8AA0" stroke-width="3" stroke-linejoin="round" opacity=".9"/>
+          </g></g>
+          <g transform="translate(560 40)"><g class="s-cloud-b">
+            <path d="M0 48 Q0 26 24 26 Q32 6 58 10 Q84 2 94 24 Q116 24 116 48 Z" fill="#fff" stroke="#6C8AA0" stroke-width="3" stroke-linejoin="round" opacity=".8"/>
+          </g></g>
+
+          <path d="M0 360 C150 300 300 330 460 352 S760 318 920 296 V540 H0 Z" fill="url(#hillFar)" stroke="#294C62" stroke-width="3"/>
+
+          <rect x="0" y="470" width="920" height="300" fill="url(#soil)"/>
+          <g fill="#E9C99E" stroke="#8A5B38" stroke-width="2" opacity=".85">
+            <ellipse cx="90" cy="560" rx="18" ry="10"/><ellipse cx="250" cy="720" rx="22" ry="11"/>
+            <ellipse cx="610" cy="560" rx="16" ry="9"/><ellipse cx="840" cy="590" rx="20" ry="10"/>
+            <ellipse cx="160" cy="610" rx="12" ry="7"/><ellipse cx="560" cy="725" rx="18" ry="9"/>
+          </g>
+
+          <rect x="432" y="480" width="36" height="170" fill="url(#pipe)" stroke="#294C62" stroke-width="3.5"/>
+          <rect x="-10" y="640" width="940" height="38" rx="8" fill="url(#pipe)" stroke="#294C62" stroke-width="3.5"/>
+          <rect x="436" y="637" width="28" height="22" fill="#E3F4FC"/>
+          <path d="M-10 649 H930" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".8"/>
+          <line class="s-flow" x1="450" y1="640" x2="450" y2="492" stroke="#59B9EC" stroke-width="6" stroke-linecap="round"/>
+          <line class="s-flow" x1="0" y1="659" x2="920" y2="659" stroke="#59B9EC" stroke-width="6" stroke-linecap="round"/>
+
+          <rect x="426" y="526" width="48" height="12" rx="3" fill="#FFD166" stroke="#294C62" stroke-width="3"/>
+          <rect x="426" y="590" width="48" height="12" rx="3" fill="#FFD166" stroke="#294C62" stroke-width="3"/>
+          <circle cx="450" cy="564" r="36" fill="#FFF4A4" stroke="#294C62" stroke-width="4"/>
+          <circle cx="450" cy="564" r="26" fill="#fff" stroke="#294C62" stroke-width="2.5"/>
+          <g stroke="#294C62" stroke-width="2.5" stroke-linecap="round">
+            <line x1="450" y1="541" x2="450" y2="546"/><line x1="427" y1="564" x2="432" y2="564"/><line x1="468" y1="564" x2="473" y2="564"/>
+          </g>
+          <rect class="s-needle" x="448.5" y="544" width="3" height="20" rx="1.5" fill="#13233B"/>
+          <circle cx="450" cy="564" r="4" fill="#FF8FA3" stroke="#294C62" stroke-width="2"/>
+
+          <ellipse cx="718" cy="716" rx="52" ry="12" fill="#8A5B38" opacity=".55"/>
+          <path d="M710 678 L718 688 L711 694 L719 702" fill="none" stroke="#C2415D" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" transform="translate(0 -4)"/>
+          <circle class="s-ring" cx="718" cy="676" r="16" fill="none" stroke="#C2415D" stroke-width="3"/>
+          <g fill="#9EDCFF" stroke="#294C62" stroke-width="2.5">
+            <path class="s-drop" style="animation-delay:0s" d="M718 690 q-6 9 -6 13 a6 6 0 0 0 12 0 q0 -4 -6 -13 Z"/>
+            <path class="s-drop" style="animation-delay:.63s" d="M706 692 q-5 8 -5 11 a5 5 0 0 0 10 0 q0 -3 -5 -11 Z"/>
+            <path class="s-drop" style="animation-delay:1.26s" d="M732 692 q-5 8 -5 11 a5 5 0 0 0 10 0 q0 -3 -5 -11 Z"/>
+          </g>
+
+          <g transform="translate(762 560)">
+            <path d="M0 0 H150 a14 14 0 0 1 14 14 V42 a14 14 0 0 1 -14 14 H34 L8 80 L12 56 H0 Z" fill="#fff" stroke="#294C62" stroke-width="3.5" stroke-linejoin="round" transform="translate(-30 -24) scale(.92)"/>
+            <text x="38" y="-1" font-family="Sora, sans-serif" font-size="15" font-weight="700" fill="#13233B" text-anchor="middle" letter-spacing="-.3">Leak flagged</text>
+          </g>
+
+          <path d="M0 430 C180 398 330 418 470 424 S760 398 920 378 V492 C760 504 600 482 450 494 S150 488 0 482 Z" fill="url(#hillNear)" stroke="#294C62" stroke-width="3.5"/>
+
+          <g>
+            <rect x="244" y="356" width="14" height="72" rx="3" fill="#A77449" stroke="#294C62" stroke-width="3"/>
+            <g class="s-sway">
+              <circle cx="251" cy="326" r="48" fill="#6FCB8F" stroke="#294C62" stroke-width="3.5"/>
+              <circle cx="232" cy="318" r="22" fill="#98E0A8" opacity=".75"/>
+            </g>
+          </g>
+
+          <g>
+            <rect x="372" y="326" width="156" height="100" rx="6" fill="#FFF4D6" stroke="#294C62" stroke-width="3.5"/>
+            <rect x="496" y="270" width="22" height="48" fill="#FF8FA3" stroke="#294C62" stroke-width="3.5"/>
+            <polygon points="352,332 450,252 548,332" fill="#7056DD" stroke="#294C62" stroke-width="3.5" stroke-linejoin="round"/>
+            <polygon points="372,328 450,264 470,280 392,330" fill="#8D77EA" opacity=".55"/>
+            <rect x="434" y="364" width="32" height="62" rx="4" fill="#FF8FA3" stroke="#294C62" stroke-width="3.5"/>
+            <circle cx="458" cy="396" r="2.8" fill="#13233B"/>
+            <rect x="388" y="350" width="34" height="34" rx="4" fill="#9EDCFF" stroke="#294C62" stroke-width="3"/>
+            <line x1="405" y1="350" x2="405" y2="384" stroke="#294C62" stroke-width="2.5"/><line x1="388" y1="367" x2="422" y2="367" stroke="#294C62" stroke-width="2.5"/>
+            <rect x="478" y="350" width="34" height="34" rx="4" fill="#9EDCFF" stroke="#294C62" stroke-width="3"/>
+            <line x1="495" y1="350" x2="495" y2="384" stroke="#294C62" stroke-width="2.5"/><line x1="478" y1="367" x2="512" y2="367" stroke="#294C62" stroke-width="2.5"/>
+          </g>
+
+          <g>
+            <rect x="694" y="392" width="10" height="26" rx="3" fill="#FFD166" stroke="#294C62" stroke-width="3"/>
+            <circle cx="699" cy="388" r="9" fill="#FF8FA3" stroke="#294C62" stroke-width="3"/>
+            <path class="s-spray" d="M706 382 Q740 346 772 372" fill="none" stroke="#59B9EC" stroke-width="4" stroke-linecap="round"/>
+            <path class="s-spray" d="M692 382 Q660 348 630 372" fill="none" stroke="#59B9EC" stroke-width="4" stroke-linecap="round"/>
+            <path class="s-spray" d="M699 378 Q699 340 699 326" fill="none" stroke="#59B9EC" stroke-width="4" stroke-linecap="round"/>
+          </g>
+
+          <use href="#flower" x="110" y="456" style="color:#FF8FA3"/>
+          <use href="#flower" x="176" y="474" style="color:#7056DD" transform="translate(0 0) scale(.85)" />
+          <use href="#flower" x="600" y="452" style="color:#FFD166"/>
+          <use href="#flower" x="838" y="430" style="color:#FF8FA3" transform="translate(0 0)"/>
+        </g>
+        <rect x="1.5" y="1.5" width="917" height="757" rx="35" fill="none" stroke="#294C62" stroke-width="3"/>
+      </svg>
+      <p class="scene-caption">A house, its water line, and the meter in between. The Leak Detective watches that meter every 15 minutes.</p>
+    </div>
+  </div>
+</div>
+
+<div class="stat-band">
+  <div class="container stat-strip">
+    <div class="stat"><div class="v">3</div><div class="l">distinct AI techniques, each doing real work</div></div>
+    <div class="stat"><div class="v">5,760</div><div class="l">readings trained per household</div></div>
+    <div class="stat"><div class="v">60 days</div><div class="l">of simulated usage history</div></div>
+    <div class="stat"><div class="v">$0</div><div class="l">to install and run locally</div></div>
+  </div>
+</div>
+
+<main>
+<div class="container">
+
+  <section class="section" id="product">
+    <h2 class="section-heading">One story, <em>four tools</em></h2>
+    <p class="body-copy">Spot the leak, see the cost, get the fix, report public waste. Every household gets its own trained model.</p>
+    <div class="capabilities">
+      <div class="capability">
+        <h3>Leak Detective</h3>
+        <div><p>An Isolation Forest trained on this household's own 15 minute usage history flags what is abnormal for that household, not a fixed gallons per minute rule.</p><span class="tag">scikit-learn</span></div>
+      </div>
+      <div class="capability">
+        <h3>Forecast and Savings</h3>
+        <div><p>A 7 day projection corrected against a live National Weather Service forecast, showing exactly when a household crosses into Tier 2 pricing and what it will cost.</p><span class="tag">NOAA api.weather.gov</span></div>
+      </div>
+      <div class="capability">
+        <h3>Report Waste</h3>
+        <div><p>Upload a photo of a broken sprinkler or an open hydrant. A convolutional network classifies it entirely in the browser, no photo ever reaches a server, and AquaAI drafts the report.</p><span class="tag">MobileNetV2, TensorFlow.js</span></div>
+      </div>
+      <div class="capability">
+        <h3>Ask AquaAI</h3>
+        <div><p>Ask a plain English question about a bill, a leak, or a savings goal. Answers are grounded in that household's real numbers, never invented.</p><span class="tag">Gemini, grounded</span></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="showcase">
+    <div>
+      <h2>Ask a question, get a grounded answer</h2>
+      <p>Ask AquaAI never guesses a number it was not given. Every question is answered from that household's actual dashboard, forecast, and leak data, and it says plainly when it is working from a fallback instead of a live model.</p>
+    </div>
+    <div class="chat-example">
+      <div class="q">Why is my bill high?</div>
+      <div class="a">Based on your usage, you are projected to cross into Tier 2 pricing around day 24 of the month, adding roughly $18 to your bill. Your Leak Detective model has also flagged 3 unusual intervals this week worth checking.
+        <span class="src">Example answer from Gemini, grounded in a household's real data</span>
+      </div>
+    </div>
+  </div>
+
+  <section class="section" id="how-it-works">
+    <h2 class="section-heading">What AquaAI is, <em>and isn't</em></h2>
+    <p class="body-copy">Plain claims, backed by what is really running underneath.</p>
+    <div class="standards">
+      <div class="standard">
+        <h3>Trained fresh per household</h3>
+        <p>Every household gets its own seed, its own simulated meter history, and its own trained Isolation Forest, not one shared model.</p>
+      </div>
+      <div class="standard">
+        <h3>Photos never leave the device</h3>
+        <p>The Report Waste classifier runs entirely in the browser. No image is ever uploaded anywhere.</p>
+      </div>
+      <div class="standard">
+        <h3>Real weather, real math</h3>
+        <p>The forecast pulls a live 7 day outlook from the National Weather Service and corrects usage projections against it.</p>
+      </div>
+      <div class="standard">
+        <h3>Works with zero setup</h3>
+        <p>Runs on a local SQLite database by default. A cloud database is available if configured, but nothing depends on it.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="faq">
+    <h2 class="section-heading">Questions <em>worth asking</em></h2>
+    <div class="faq-list">
+      <details class="faq-item">
+        <summary>Is the water usage data real?<span class="plus">+</span></summary>
+        <p>No, and this is stated plainly in the app. Household meter readings are simulated with realistic daily and weekly patterns, since a live feed would require a utility partnership. The AI models trained on that data, the weather forecast, and the photo classifier are all real.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Why these AI models and not something flashier?<span class="plus">+</span></summary>
+        <p>An earlier version used a TensorFlow LSTM on the backend for forecasting. That is a large dependency for predicting seven numbers, and a real risk of failing during a live demo. Isolation Forest and a browser side CNN do genuine, explainable work without that fragility.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Is my account and data secure?<span class="plus">+</span></summary>
+        <p>Passwords are hashed, never stored in plain text, and sessions use signed tokens. Worth knowing plainly: there is no password reset flow or login rate limiting yet. That is a reasonable scope for a student submission, not a claim of enterprise grade security.</p>
+      </details>
+      <details class="faq-item">
+        <summary>Can I add my own household?<span class="plus">+</span></summary>
+        <p>Yes. Sign in, choose New household, pick a city and household size, and AquaAI trains a model for it immediately. Only you can see or delete a household you create.</p>
+      </details>
+    </div>
+  </section>
+
+</div>
+
+<section class="final-cta">
+  <div class="container">
+    <h2>See it work for a <span>real household.</span></h2>
+    <a class="action-button action-button--primary" href="/app#signup">Create your account</a>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="container footer-inner">
+    <span>AquaAI, household water intelligence</span>
+    <span><a href="/privacy">Privacy</a>  <a href="/app">Open the app</a></span>
+  </div>
+</footer>
+
+<script src="js/landing.js"></script>
+</body>
+</html>

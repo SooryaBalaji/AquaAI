@@ -24,6 +24,7 @@ from data import build_dataset
 DEFAULT_PROFILE_ID = "demo"
 
 MAX_NAME_LENGTH = 60
+MAX_PLACE_LENGTH = 80
 MIN_HOUSEHOLD_SIZE = 1
 MAX_HOUSEHOLD_SIZE = 20
 MIN_TIER1_LIMIT_GAL = 500
@@ -34,10 +35,10 @@ _cache = {}  # profile_id -> {"readings": [...], "model": ..., "anomalies": [...
 
 
 class ValidationError(Exception):
-    """Raised for bad profile input. Message is safe to show the user."""
+    """Raised for bad profile input. Message is safe to show the user"""
 
 
-def _new_profile(profile_id, owner_id, name, lat, lon, household_size, tier1_limit_gal, seed):
+def _new_profile(profile_id, owner_id, name, lat, lon, household_size, tier1_limit_gal, seed, place=None):
     return {
         "id": profile_id,
         "owner_id": owner_id,
@@ -47,6 +48,7 @@ def _new_profile(profile_id, owner_id, name, lat, lon, household_size, tier1_lim
         "household_size": household_size,
         "tier1_limit_gal": tier1_limit_gal,
         "seed": seed,
+        "place": place,
     }
 
 
@@ -110,7 +112,14 @@ def _validate(name, lat, lon, household_size, tier1_limit_gal):
     return name, lat, lon, household_size, tier1_limit_gal
 
 
-def create_profile(owner_id, name, lat, lon, household_size, tier1_limit_gal):
+def _clean_place(place):
+    place = (place or "").strip() if isinstance(place, str) else ""
+    if len(place) > MAX_PLACE_LENGTH:
+        raise ValidationError(f"Place name must be {MAX_PLACE_LENGTH} characters or fewer.")
+    return place or None
+
+
+def create_profile(owner_id, name, lat, lon, household_size, tier1_limit_gal, place=None):
     if not owner_id:
         raise ValidationError("You must be signed in to create a household.")
 
@@ -124,9 +133,39 @@ def create_profile(owner_id, name, lat, lon, household_size, tier1_limit_gal):
     profile = _new_profile(
         profile_id, owner_id, name, lat, lon, household_size, tier1_limit_gal,
         seed=random.randint(1, 1_000_000),
+        place=_clean_place(place),
     )
     storage.save_profile(profile)
     return profile
+
+
+EDITABLE = ("name", "lat", "lon", "household_size", "tier1_limit_gal", "place")
+
+
+def update_profile(profile_id, owner_id, changes):
+    """Edits a household the caller owns. Returns the updated profile, or
+    None if it doesn't exist or isn't theirs (the demo household is nobody's)."""
+    profile = storage.get_profile(profile_id)
+    if not profile or not owner_id or profile.get("owner_id") != owner_id:
+        return None
+    if not isinstance(changes, dict) or not set(changes) & set(EDITABLE):
+        raise ValidationError("Nothing to change.")
+
+    merged = {**profile, **{k: changes[k] for k in EDITABLE if k in changes}}
+    name, lat, lon, size, tier = _validate(
+        merged["name"], merged["lat"], merged["lon"], merged["household_size"], merged["tier1_limit_gal"]
+    )
+    updated = {**profile, "name": name, "lat": lat, "lon": lon, "household_size": size,
+               "tier1_limit_gal": tier, "place": _clean_place(merged.get("place"))}
+    storage.save_profile(updated)
+    if size != profile["household_size"]:
+        _cache.pop(profile_id, None)  # usage data is built from the household size
+    return updated
+
+
+def is_simulated(profile):
+    """Only the shared demo household (no owner) runs on generated readings."""
+    return profile.get("owner_id") is None
 
 
 def delete_profile(profile_id, owner_id):
@@ -134,6 +173,7 @@ def delete_profile(profile_id, owner_id):
     if not profile or profile.get("owner_id") != owner_id or profile.get("owner_id") is None:
         return False
     storage.delete_profile_row(profile_id)
+    storage.delete_usage(profile_id)
     _cache.pop(profile_id, None)
     return True
 
@@ -144,6 +184,7 @@ def delete_all_for_owner(owner_id):
     owned = [p for p in storage.list_profiles(owner_id) if p.get("owner_id") == owner_id]
     for p in owned:
         storage.delete_profile_row(p["id"])
+        storage.delete_usage(p["id"])
         _cache.pop(p["id"], None)
     return len(owned)
 

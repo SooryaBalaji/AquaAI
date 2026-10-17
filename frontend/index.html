@@ -33,6 +33,9 @@
     <button class="rail-btn" data-tab="assistant" title="Ask AquaAI">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5 H20 V16 H9 L5 19.5 V16 H4 Z"/></svg>
     </button>
+    <button class="rail-btn" data-tab="households" title="Households">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v10h13V10"/><path d="M10 20v-5.5h4V20"/></svg>
+    </button>
     <button class="rail-btn" data-tab="settings" title="Settings">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     </button>
@@ -129,21 +132,8 @@
       <div class="profile-bar-inner">
         <label for="profile-select">Household</label>
         <select id="profile-select"></select>
-        <button class="link-btn" id="new-profile-btn">New household</button>
-        <button class="link-btn" id="delete-profile-btn" hidden>Delete this household</button>
+        <button class="link-btn" id="manage-households-btn" hidden>Manage households</button>
         <span class="hint" id="signin-hint" hidden>Sign in to add a household</span>
-      </div>
-      <div class="profile-form" id="profile-form" hidden>
-        <div class="profile-form-inner">
-          <input type="text" id="pf-name" placeholder="Household name, for example Grandma's house">
-          <input type="text" id="pf-city" list="pf-city-list" placeholder="City or ZIP code" autocomplete="off">
-          <datalist id="pf-city-list"></datalist>
-          <input type="number" id="pf-size" min="1" max="10" value="4" title="People in household">
-          <input type="number" id="pf-tier" min="500" step="500" value="4500" title="Tier 1 monthly gallon limit">
-          <button class="btn" id="pf-create-btn">Create</button>
-          <button class="link-btn" id="pf-cancel-btn">Cancel</button>
-        </div>
-        <div class="pf-error" id="pf-error"></div>
       </div>
     </div>
 
@@ -311,6 +301,52 @@
     </section>
   </section>
 
+  <section class="page" id="page-households">
+    <div class="page-head">
+      <h2>Households</h2>
+      <p>Add the homes you track, change their details, and switch between them.</p>
+    </div>
+
+    <section class="block" id="hh-signed-out" hidden>
+      <div class="set-row">
+        <div class="set-text"><b>Sign in to manage households</b><span>The demo household is available to everyone. Sign in to add your own.</span></div>
+        <button class="btn" id="hh-signin-btn" type="button">Sign in</button>
+      </div>
+    </section>
+
+    <section class="block" id="hh-signed-in" hidden>
+      <div class="hh-toolbar">
+        <span class="hh-count" id="hh-count"></span>
+        <button class="btn" id="hh-add-btn" type="button">Add household</button>
+      </div>
+
+      <form class="hh-form" id="hh-form" novalidate hidden>
+        <h3 id="hh-form-title">Add a household</h3>
+        <div class="hh-fields">
+          <label class="pf-field pf-name"><span>Household name</span>
+            <input type="text" id="pf-name" placeholder="For example, Grandma's house" maxlength="60"></label>
+          <label class="pf-field pf-place"><span>City or ZIP code</span>
+            <input type="text" id="pf-city" list="pf-city-list" placeholder="Dublin, CA or 94568" autocomplete="off"></label>
+          <datalist id="pf-city-list"></datalist>
+          <label class="pf-field pf-small"><span>People</span>
+            <input type="number" id="pf-size" min="1" max="20" value="4"></label>
+          <label class="pf-field pf-tier"><span>Tier 1 limit (gal/month)</span>
+            <input type="number" id="pf-tier" min="500" step="500" value="4500"></label>
+        </div>
+        <div class="hh-form-actions">
+          <button class="btn" id="pf-save-btn" type="submit">Save household</button>
+          <button class="link-btn" id="pf-cancel-btn" type="button">Cancel</button>
+        </div>
+        <div class="set-msg" id="pf-error" role="alert"></div>
+      </form>
+    </section>
+
+    <section class="block">
+      <div class="hh-list" id="hh-list"></div>
+      <p class="set-fine">Usage numbers are simulated for now. Each household's water readings are generated from its size, with planted leaks for the Leak Detective to find, and the weather forecast is real. Connecting real meter data is a separate step.</p>
+    </section>
+  </section>
+
   <section class="page" id="page-settings">
     <div class="page-head">
       <h2>Settings</h2>
@@ -343,39 +379,13 @@
       </div>
     </section>
 
-    <section class="block" id="set-phone-block" hidden>
-      <h3>Phone number</h3>
-      <div class="set-row">
-        <div class="set-text"><b id="set-phone-status">No phone linked</b><span id="set-phone-note">Link a number to receive text alerts.</span></div>
-        <button class="btn btn-quiet" id="set-phone-remove" type="button" hidden>Remove</button>
-      </div>
-      <form class="set-phone-form" id="set-phone-form" novalidate>
-        <div class="set-inline">
-          <input type="tel" id="set-phone-input" placeholder="+1 555 123 4567" autocomplete="tel">
-          <button class="btn" id="set-phone-send" type="submit">Send code</button>
-        </div>
-      </form>
-      <form class="set-phone-form" id="set-code-form" novalidate hidden>
-        <div class="set-inline">
-          <input type="text" id="set-code-input" inputmode="numeric" maxlength="6" placeholder="6-digit code" autocomplete="one-time-code">
-          <button class="btn" id="set-code-verify" type="submit">Verify</button>
-          <button class="link-btn" id="set-code-cancel" type="button">Cancel</button>
-        </div>
-      </form>
-      <div class="set-msg" id="set-phone-msg" role="status"></div>
-      <div id="recaptcha-holder"></div>
-    </section>
-
     <section class="block" id="set-notify-block" hidden>
       <h3>Notifications</h3>
       <label class="set-row set-toggle"><span class="set-text"><b>Leak alerts</b><span>When the Leak Detective flags unusual overnight or constant flow.</span></span><input type="checkbox" class="switch" data-setting="leak_alerts"></label>
       <label class="set-row set-toggle"><span class="set-text"><b>Budget alerts</b><span>When a household nears its daily budget or the Tier 2 price line.</span></span><input type="checkbox" class="switch" data-setting="budget_alerts"></label>
       <label class="set-row set-toggle"><span class="set-text"><b>Weekly summary</b><span>A short recap of the week's usage and savings.</span></span><input type="checkbox" class="switch" data-setting="weekly_summary"></label>
-      <div class="set-sub">Send alerts by</div>
-      <label class="set-row set-toggle"><span class="set-text"><b>Email</b><span id="set-via-email-note"></span></span><input type="checkbox" class="switch" data-setting="via_email"></label>
-      <label class="set-row set-toggle"><span class="set-text"><b>Text message</b><span id="set-via-sms-note">Link a phone number above to turn this on.</span></span><input type="checkbox" class="switch" data-setting="via_sms" id="set-via-sms"></label>
       <div class="set-msg" id="set-notify-msg" role="status"></div>
-      <p class="set-fine">Your choices are saved to your account. AquaAI isn't sending alerts yet; they'll start once delivery is switched on.</p>
+      <p class="set-fine">Alerts go to your account email, <span id="set-notify-email"></span>. Your choices are saved, but AquaAI isn't sending alerts yet; they'll start once delivery is switched on.</p>
     </section>
 
     <section class="block set-danger" id="set-danger-block" hidden>
@@ -425,6 +435,7 @@
 <script src="js/assistant.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/settings.js"></script>
+<script src="js/households.js"></script>
 <script src="js/profile.js"></script>
 <script src="js/filters.js"></script>
 <script src="js/main.js"></script>

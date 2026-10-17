@@ -2,6 +2,14 @@ let forecastChart;
 let tierChart;
 
 function forecastBannerHTML(f) {
+  if (f.has_data === false) {
+    return `
+      <div class="banner">
+        <div class="mark"></div>
+        <p><b>No usage data yet.</b> Projections start once you add your daily gallons.
+        <button class="link-btn" id="forecast-add-data">Add data</button></p>
+      </div>`;
+  }
   if (f.tier_breach_day_of_month) {
     return `
       <div class="banner">
@@ -20,7 +28,13 @@ function forecastBannerHTML(f) {
 
 async function loadForecast() {
   const f = await getJSON('/api/forecast');
+  if (f.error) {
+    document.getElementById('forecast-banner').innerHTML = `<div class="banner"><div class="mark"></div><p><b>Could not load the forecast.</b> ${esc(f.error)}</p></div>`;
+    return;
+  }
   document.getElementById('forecast-banner').innerHTML = forecastBannerHTML(f);
+  const addLink = document.getElementById('forecast-add-data');
+  if (addLink) addLink.addEventListener('click', () => openTab('usage'));
 
   document.getElementById('fc-used').textContent = f.month_used_so_far.toLocaleString();
   document.getElementById('fc-remaining').textContent = Math.round(f.gallons_to_tier2).toLocaleString();
@@ -61,6 +75,7 @@ async function loadForecast() {
   document.getElementById('tips-list').innerHTML = f.savings_tips.map(t => `<li>${esc(t)}</li>`).join('');
 
   const sv = await getJSON('/api/savings');
+  if (sv.error) return;
   document.getElementById('sv-month').textContent = sv.gallons_saved_this_month.toLocaleString();
   document.getElementById('sv-year').textContent = sv.gallons_saved_projected_year.toLocaleString();
   document.getElementById('sv-dollars').textContent = '$' + sv.dollars_saved_projected_year.toLocaleString();

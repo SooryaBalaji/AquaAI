@@ -23,6 +23,8 @@ def compute_score(forecast, anomaly_count):
 
 
 def compute_savings(forecast, anomaly_count, household_size=4):
+    if forecast.get("has_data") is False:
+        return {"gallons_saved_this_month": 0, "gallons_saved_projected_year": 0, "dollars_saved_projected_year": 0, "badges": []}
     regional_avg_daily = REGIONAL_AVG_DAILY_GAL_PER_PERSON * household_size
     saved_per_day = max(0, regional_avg_daily - forecast["avg_daily_gallons"])
     return {
