@@ -42,7 +42,7 @@ def test_new_household_is_all_zeros(client, registered_user):
     sv = client.get("/api/savings" + q(pid), headers=headers).get_json()
     assert sv["gallons_saved_projected_year"] == 0 and sv["badges"] == []
     a = client.get("/api/anomalies" + q(pid), headers=headers).get_json()
-    assert a["anomalies_found"] == 0 and a["source"] == "manual"
+    assert a["anomalies_found"] == 0 and a["source"] == "manual" and a["days_checked"] == 0
 
 
 def test_entered_usage_drives_the_numbers(client, registered_user):
@@ -122,3 +122,59 @@ def test_assistant_asks_for_data_when_household_is_empty(client, registered_user
     pid = make(client, headers)
     r = client.post("/api/ask" + q(pid), json={"question": "why is my bill high?"}, headers=headers)
     assert "Add data" in r.get_json()["answer"]
+
+
+def test_forecast_follows_the_weekly_pattern(client, registered_user):
+    headers, _, _ = registered_user
+    pid = make(client, headers)
+    entries = []
+    for i in range(60):
+        d = TODAY - timedelta(days=i)
+        entries.append({"date": d.isoformat(), "gallons": 300 if d.weekday() >= 5 else 150})
+    assert put(client, headers, pid, entries).status_code == 200
+    f = client.get("/api/forecast" + q(pid), headers=headers).get_json()
+    values = {d["gallons"] for d in f["projected_daily"]}
+    assert len(values) == 2 and max(values) > min(values) * 1.5
+
+
+def test_forecast_stays_flat_with_too_little_history(client, registered_user):
+    headers, _, _ = registered_user
+    pid = make(client, headers)
+    entries = [{"date": (TODAY - timedelta(days=i)).isoformat(), "gallons": 100 + i * 10} for i in range(5)]
+    put(client, headers, pid, entries)
+    f = client.get("/api/forecast" + q(pid), headers=headers).get_json()
+    assert len({d["gallons"] for d in f["projected_daily"]}) == 1
+
+
+def test_unusual_days_are_flagged_from_daily_totals(client, registered_user):
+    headers, _, _ = registered_user
+    pid = make(client, headers)
+    entries = []
+    for i in range(30):
+        d = TODAY - timedelta(days=i)
+        entries.append({"date": d.isoformat(), "gallons": 150 + (i % 5)})
+    spike_day = (TODAY - timedelta(days=3)).isoformat()
+    for e in entries:
+        if e["date"] == spike_day:
+            e["gallons"] = 600
+    put(client, headers, pid, entries)
+    a = client.get("/api/anomalies" + q(pid), headers=headers).get_json()
+    assert a["anomalies_found"] == 1
+    assert a["unusual_days"][0]["date"] == spike_day and a["unusual_days"][0]["gallons"] == 600
+    assert sum(a["weekly_counts"]) == 1 and len(a["weekly_counts"]) == 8
+
+
+def test_steady_usage_has_no_unusual_days(client, registered_user):
+    headers, _, _ = registered_user
+    pid = make(client, headers)
+    put(client, headers, pid, [{"date": (TODAY - timedelta(days=i)).isoformat(), "gallons": 150 + (i % 4)} for i in range(30)])
+    a = client.get("/api/anomalies" + q(pid), headers=headers).get_json()
+    assert a["anomalies_found"] == 0 and a["typical_daily_gallons"] is not None
+
+
+def test_too_few_days_for_unusual_check(client, registered_user):
+    headers, _, _ = registered_user
+    pid = make(client, headers)
+    put(client, headers, pid, [{"date": (TODAY - timedelta(days=i)).isoformat(), "gallons": 150} for i in range(5)])
+    a = client.get("/api/anomalies" + q(pid), headers=headers).get_json()
+    assert a["anomalies_found"] == 0 and a["days_checked"] == 5 and a["typical_daily_gallons"] is None

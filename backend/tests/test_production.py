@@ -199,3 +199,12 @@ def test_firebase_key_without_service_account_falls_back_to_local(monkeypatch):
     assert auth.public_config() == {"provider": "local"}
     monkeypatch.setenv("APP_ENV", "production")
     assert auth.provider() == "firebase"
+
+
+def test_csp_allows_eval_only_with_firebase_sign_in(client, monkeypatch):
+    import auth
+    monkeypatch.delenv("CSP_OVERRIDE", raising=False)
+    assert "'unsafe-eval'" not in client.get("/app").headers["Content-Security-Policy"]
+    monkeypatch.setattr(auth, "provider", lambda: "firebase")
+    csp = client.get("/app").headers["Content-Security-Policy"]
+    assert "script-src 'self' 'unsafe-eval'" in csp and "https://apis.google.com" in csp

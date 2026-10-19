@@ -175,7 +175,10 @@ def add_security_headers(response):
     response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
     response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=(self)")
     if os.environ.get("DISABLE_CSP") != "1" and not request.path.startswith("/api/"):
-        response.headers.setdefault("Content-Security-Policy", _CSP)
+        policy = _CSP
+        if auth.provider() == "firebase" and not os.environ.get("CSP_OVERRIDE"):
+            policy = policy.replace("script-src 'self'", "script-src 'self' 'unsafe-eval'", 1)
+        response.headers.setdefault("Content-Security-Policy", policy)
     if IS_PRODUCTION:
         response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
     if request.path.startswith("/api/"):
@@ -423,7 +426,7 @@ def dashboard():
 def anomalies():
     profile, household = _load_authorized_profile()
     if household is None:
-        return jsonify(usage.anomalies())
+        return jsonify(usage.anomalies(storage_usage(profile), _today()))
     found = household["anomalies"]
 
     days_back = request.args.get("days", type=int)

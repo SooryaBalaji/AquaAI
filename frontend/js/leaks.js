@@ -18,23 +18,43 @@ async function loadLeaks() {
     document.getElementById('anomaly-rows').innerHTML = `<tr><td colspan="4">Could not load leak results. ${esc(a.error)}</td></tr>`;
     return;
   }
+  const head = document.getElementById('anomaly-head');
+  const intro = document.getElementById('leaks-intro');
+  let rows, note;
   if (a.source === 'manual') {
-    document.getElementById('anomaly-rows').innerHTML = '<tr><td colspan="4">The Leak Detective needs hourly or 15 minute readings. This household only has daily totals, so there is nothing to check yet.</td></tr>';
-    document.getElementById('model-note').textContent = '';
-    if (weeklyChart) { weeklyChart.destroy(); weeklyChart = null; }
-    document.getElementById('weeklyChart-wrap').innerHTML = '';
-    return;
-  }
-  const rows = a.anomalies.map(x => `
+    intro.textContent = 'This household has daily totals, so the Leak Detective checks for unusually high days compared with its own recent normal. A steady leak often shows up as a run of high days. Hourly or 15 minute readings would let it find leaks within a day.';
+    head.innerHTML = '<tr><th>Date</th><th>Gallons</th><th>Typical day</th><th>Score</th></tr>';
+    if (a.days_checked < a.min_days) {
+      document.getElementById('anomaly-rows').innerHTML = `<tr><td colspan="4">Add at least ${a.min_days} days of data to check for unusual days. This household has ${a.days_checked} in the last 60 days.</td></tr>`;
+      document.getElementById('model-note').textContent = '';
+      if (weeklyChart) { weeklyChart.destroy(); weeklyChart = null; }
+      document.getElementById('weeklyChart-wrap').innerHTML = '';
+      return;
+    }
+    rows = a.unusual_days.map(x => `
+    <tr>
+      <td>${esc(x.date)}</td>
+      <td>${esc(x.gallons)} gal</td>
+      <td>${esc(x.typical)} gal</td>
+      <td>${esc(x.score)}</td>
+    </tr>`).join('');
+    rows = rows || '<tr><td colspan="4">No unusual days found. Usage looks steady.</td></tr>';
+    note = `Method: ${a.model}. Checked ${a.days_checked} days. A day is flagged when its score is above 3.5, a common cutoff for this method.`;
+  } else {
+    intro.textContent = "An Isolation Forest model, trained on 60 days of this household's own 15 minute usage history, flags intervals that don't fit its learned normal. No fixed gallons per minute threshold involved.";
+    head.innerHTML = '<tr><th>Day</th><th>Hour</th><th>Gallons, 15 min</th><th>Anomaly score</th></tr>';
+    rows = a.anomalies.map(x => `
     <tr>
       <td>Day ${x.day}</td>
       <td>${formatHour(x.hour)}</td>
       <td>${x.gallons} gal</td>
       <td>${x.anomaly_score}${x.was_injected_leak ? ' <span class="tag high">confirmed leak</span>' : ''}</td>
     </tr>`).join('');
-  document.getElementById('anomaly-rows').innerHTML = rows || '<tr><td colspan="4">No anomalies match the current filters.</td></tr>';
-  document.getElementById('model-note').textContent =
-    `Model: ${a.model}. Trained on ${a.trained_on_readings.toLocaleString()} readings, 60 days of 15 minute intervals. ${a.anomalies_found} match the current filters.`;
+    rows = rows || '<tr><td colspan="4">No anomalies match the current filters.</td></tr>';
+    note = `Model: ${a.model}. Trained on ${a.trained_on_readings.toLocaleString()} readings, 60 days of 15 minute intervals. ${a.anomalies_found} match the current filters.`;
+  }
+  document.getElementById('anomaly-rows').innerHTML = rows;
+  document.getElementById('model-note').textContent = note;
 
   try {
     if (weeklyChart) weeklyChart.destroy();

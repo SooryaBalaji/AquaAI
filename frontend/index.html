@@ -190,7 +190,7 @@
   <section class="page" id="page-leaks">
     <div class="page-head">
       <h2>Leak Detective</h2>
-      <p>An Isolation Forest model, trained on 60 days of this household's own 15 minute usage history, flags intervals that don't fit its learned normal. No fixed gallons per minute threshold involved.</p>
+      <p id="leaks-intro">An Isolation Forest model, trained on 60 days of this household's own 15 minute usage history, flags intervals that don't fit its learned normal. No fixed gallons per minute threshold involved.</p>
     </div>
     <section class="block">
       <h3>Anomalies by week</h3>
@@ -198,7 +198,7 @@
     </section>
     <section class="block">
       <table>
-        <thead><tr><th>Day</th><th>Hour</th><th>Gallons, 15 min</th><th>Anomaly score</th></tr></thead>
+        <thead id="anomaly-head"><tr><th>Day</th><th>Hour</th><th>Gallons, 15 min</th><th>Anomaly score</th></tr></thead>
         <tbody id="anomaly-rows"><tr><td colspan="4" class="loading">Loading model results</td></tr></tbody>
       </table>
       <div class="model-note" id="model-note"></div>

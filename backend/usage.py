@@ -96,6 +96,21 @@ def dashboard(daily, tier1_limit_gal, today):
     }
 
 
+def weekday_factors(daily, today, weeks=8, min_per_day=3):
+    recent = {}
+    for i in range(weeks * 7):
+        day = today - timedelta(days=i)
+        if day.isoformat() in daily:
+            recent.setdefault(day.weekday(), []).append(daily[day.isoformat()])
+    values = [v for vs in recent.values() for v in vs]
+    if len(recent) < 7 or any(len(vs) < min_per_day for vs in recent.values()) or not values:
+        return None
+    overall = sum(values) / len(values)
+    if overall <= 0:
+        return None
+    return {wd: (sum(vs) / len(vs)) / overall for wd, vs in recent.items()}
+
+
 def forecast(daily, lat, lon, tier1_limit_gal, today):
     recent = [
         daily[d] for d in ((today - timedelta(days=i)).isoformat() for i in range(30)) if d in daily
@@ -104,7 +119,10 @@ def forecast(daily, lat, lon, tier1_limit_gal, today):
     prefix = today.strftime("%Y-%m")
     month_used = sum(g for d, g in daily.items() if d.startswith(prefix) and d <= today.isoformat())
     days_in_month = calendar.monthrange(today.year, today.month)[1]
-    result = weather.forecast_from_daily(avg_daily, month_used, today.day, days_in_month, lat, lon, tier1_limit_gal)
+    result = weather.forecast_from_daily(
+        avg_daily, month_used, today.day, days_in_month, lat, lon, tier1_limit_gal,
+        weekday_factors=weekday_factors(daily, today), today=today,
+    )
     result["source"] = "manual"
     result["has_data"] = bool(daily)
     return result
@@ -129,12 +147,47 @@ def score(daily, forecast_data, today):
     }
 
 
-def anomalies():
-    return {
+MIN_DAYS_FOR_UNUSUAL = 14
+UNUSUAL_THRESHOLD = 3.5
+BASELINE_DAYS = 60
+
+
+def anomalies(daily, today):
+    window = {}
+    for i in range(BASELINE_DAYS):
+        key = (today - timedelta(days=i)).isoformat()
+        if key in daily:
+            window[key] = daily[key]
+    result = {
         "source": "manual",
-        "model": None,
-        "trained_on_readings": 0,
-        "anomalies_found": 0,
+        "model": "Modified z-score on daily totals (median and MAD)",
+        "min_days": MIN_DAYS_FOR_UNUSUAL,
+        "days_checked": len(window),
+        "trained_on_readings": len(window),
+        "typical_daily_gallons": None,
+        "unusual_days": [],
         "anomalies": [],
+        "anomalies_found": 0,
         "weekly_counts": [],
     }
+    if len(window) < MIN_DAYS_FOR_UNUSUAL:
+        return result
+    values = list(window.values())
+    median = statistics.median(values)
+    mad = statistics.median(abs(v - median) for v in values)
+    result["typical_daily_gallons"] = round(median, 1)
+    if mad == 0:
+        return result
+    flagged = []
+    for day, gallons in window.items():
+        score = 0.6745 * (gallons - median) / mad
+        if score > UNUSUAL_THRESHOLD:
+            flagged.append({"date": day, "gallons": round(gallons, 1), "typical": round(median, 1), "score": round(score, 1)})
+    flagged.sort(key=lambda x: x["date"], reverse=True)
+    weeks = [0] * 8
+    for item in flagged:
+        age = (today - date.fromisoformat(item["date"])).days
+        if 0 <= age < 56:
+            weeks[7 - age // 7] += 1
+    result.update(unusual_days=flagged, anomalies_found=len(flagged), weekly_counts=weeks)
+    return result

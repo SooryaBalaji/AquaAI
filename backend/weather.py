@@ -6,7 +6,7 @@ forecast keeps working when the service is unreachable.
 """
 
 import random
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import requests
 
@@ -48,7 +48,7 @@ def build_forecast(readings, lat, lon, tier1_limit_gal):
     return forecast_from_daily(avg_daily, month_used_so_far, today_of_month, DAYS_IN_MONTH, lat, lon, tier1_limit_gal)
 
 
-def forecast_from_daily(avg_daily, month_used_so_far, today_of_month, days_in_month, lat, lon, tier1_limit_gal):
+def forecast_from_daily(avg_daily, month_used_so_far, today_of_month, days_in_month, lat, lon, tier1_limit_gal, weekday_factors=None, today=None):
     weather = fetch_noaa_forecast(lat, lon)
     highs = weather["daily_highs"]
 
@@ -58,7 +58,10 @@ def forecast_from_daily(avg_daily, month_used_so_far, today_of_month, days_in_mo
     for i in range(7):
         high = highs[i] if i < len(highs) else 85
         heat_multiplier = 1 + max(0, high - 85) * 0.025  # +2.5% per degree above 85F
-        day_total = round(avg_daily * heat_multiplier, 1)
+        factor = 1.0
+        if weekday_factors and today is not None:
+            factor = weekday_factors.get((today + timedelta(days=i + 1)).weekday(), 1.0)
+        day_total = round(avg_daily * heat_multiplier * factor, 1)
         running_total += day_total
         projected_daily.append({"day_offset": i + 1, "high_f": high, "gallons": day_total})
         if breach_day is None and running_total > tier1_limit_gal:
