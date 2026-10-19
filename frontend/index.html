@@ -395,8 +395,15 @@
           <button class="btn" id="bill-scan" type="button" disabled>Scan bill</button>
         </div>
         <div class="set-inline" style="margin-top:10px">
-          <button class="btn btn-quiet" id="bill-camera-btn" type="button">Take a photo</button>
+          <button class="btn" id="bill-camera-btn" type="button">Take a photo</button>
           <input type="file" id="bill-camera" accept="image/*" capture="environment" hidden>
+        </div>
+        <div class="bill-camera" id="bill-camera-panel" hidden>
+          <video id="bill-video" autoplay playsinline muted></video>
+          <div class="set-inline">
+            <button class="btn" id="bill-capture" type="button">Capture</button>
+            <button class="btn btn-quiet" id="bill-camera-cancel" type="button">Cancel</button>
+          </div>
         </div>
         <img id="bill-preview" class="bill-preview" alt="Preview of the bill you chose" hidden>
         <div class="set-msg" id="bill-msg" role="status"></div>

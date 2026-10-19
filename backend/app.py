@@ -82,9 +82,7 @@ if IS_PRODUCTION:
         raise RuntimeError("Refusing to start in production:\n- " + "\n- ".join(_problems))
 
 
-# ---------------------------------------------------------------------------
 # Auth helpers
-# ---------------------------------------------------------------------------
 @app.before_request
 def load_current_user():
     g.user = auth.user_from_auth_header(request.headers.get("Authorization"))
@@ -118,10 +116,8 @@ def require_auth():
     return g.user
 
 
-# ---------------------------------------------------------------------------
 # Structured error handling. Every error, expected or not, comes back as
 # {"error": "..."} with an appropriate status code, never a raw traceback.
-# ---------------------------------------------------------------------------
 @app.errorhandler(auth.AuthError)
 def handle_auth_error(e):
     body = {"error": e.message}
@@ -174,7 +170,7 @@ def add_security_headers(response):
     response.headers.setdefault("X-Content-Type-Options", "nosniff")
     response.headers.setdefault("X-Frame-Options", "DENY")
     response.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
-    response.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=(self)")
+    response.headers.setdefault("Permissions-Policy", "camera=(self), microphone=(), geolocation=(self)")
     if os.environ.get("DISABLE_CSP") != "1" and not request.path.startswith("/api/"):
         policy = _CSP
         if auth.provider() == "firebase" and not os.environ.get("CSP_OVERRIDE"):
@@ -209,9 +205,7 @@ def legacy_app_url():
     return redirect("/app", code=301)
 
 
-# ---------------------------------------------------------------------------
 # Auth routes
-# ---------------------------------------------------------------------------
 @app.get("/api/auth/config")
 def auth_config():
     return jsonify(auth.public_config())
@@ -278,9 +272,7 @@ def update_settings_route():
     return jsonify({"settings": settings.get(user["id"])})
 
 
-# ---------------------------------------------------------------------------
 # Profiles
-# ---------------------------------------------------------------------------
 @app.get("/api/profiles")
 def list_profiles_route():
     owner_id = g.user["id"] if g.get("user") else None
@@ -335,9 +327,7 @@ def delete_profile_route(profile_id):
     return jsonify({"deleted": profile_id})
 
 
-# ---------------------------------------------------------------------------
 # Household data, scoped to the requested profile
-# ---------------------------------------------------------------------------
 def _today():
     """The caller's local date (sent by the browser as ?today=), accepted only
     if it is within a day of the server's UTC date; otherwise the server's date."""
@@ -482,9 +472,7 @@ def savings():
     return jsonify(compute_savings(f, anomaly_count, profile["household_size"]))
 
 
-# ---------------------------------------------------------------------------
 # Usage the owner enters by hand or by CSV
-# ---------------------------------------------------------------------------
 def _owned_profile(profile_id):
     user = require_auth()
     profile = profiles.get_profile(profile_id)

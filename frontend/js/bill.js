@@ -48,8 +48,54 @@ function billLock() {
 document.getElementById('bill-locked-btn').addEventListener('click', () => openAuthForm('register'));
 
 document.querySelector('.rail-btn[data-tab="bill"]').addEventListener('click', billLock);
+document.querySelectorAll('.rail-btn[data-tab]').forEach(b => { if (b.dataset.tab !== 'bill') b.addEventListener('click', stopBillCamera); });
 
-document.getElementById('bill-camera-btn').addEventListener('click', () => document.getElementById('bill-camera').click());
+let billStream = null;
+
+function stopBillCamera() {
+  if (billStream) billStream.getTracks().forEach(t => t.stop());
+  billStream = null;
+  document.getElementById('bill-camera-panel').hidden = true;
+}
+
+document.getElementById('bill-camera-btn').addEventListener('click', async () => {
+  const fallback = () => document.getElementById('bill-camera').click();
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return fallback();
+  stopBillCamera();
+  try {
+    billStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 } }, audio: false });
+  } catch (err) {
+    const denied = err && (err.name === 'NotAllowedError' || err.name === 'SecurityError');
+    billMsg('bill-msg', denied
+      ? 'Camera access was blocked. Allow the camera for this site in your browser, or choose a file instead.'
+      : 'No camera was found. Choose a file instead.', true);
+    return;
+  }
+  const video = document.getElementById('bill-video');
+  video.srcObject = billStream;
+  document.getElementById('bill-camera-panel').hidden = false;
+  billMsg('bill-msg', 'Hold the bill flat, fill the frame, then press Capture.');
+});
+
+document.getElementById('bill-capture').addEventListener('click', () => {
+  const video = document.getElementById('bill-video');
+  if (!video.videoWidth) return billMsg('bill-msg', 'The camera is still starting. Try again in a second.', true);
+  const canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  canvas.toBlob(blob => {
+    if (!blob) return billMsg('bill-msg', 'Could not take the photo. Try again.', true);
+    stopBillCamera();
+    document.getElementById('bill-file').value = '';
+    chooseBill(new File([blob], 'bill.jpg', { type: 'image/jpeg' }));
+  }, 'image/jpeg', 0.9);
+});
+
+document.getElementById('bill-camera-cancel').addEventListener('click', () => {
+  stopBillCamera();
+  billMsg('bill-msg', '');
+});
 
 document.getElementById('bill-camera').addEventListener('change', (e) => {
   const file = e.target.files[0];

@@ -208,3 +208,8 @@ def test_csp_allows_eval_only_with_firebase_sign_in(client, monkeypatch):
     monkeypatch.setattr(auth, "provider", lambda: "firebase")
     csp = client.get("/app").headers["Content-Security-Policy"]
     assert "script-src 'self' 'unsafe-eval'" in csp and "https://apis.google.com" in csp
+
+
+def test_camera_is_allowed_for_the_site_only(client):
+    policy = client.get("/app").headers["Permissions-Policy"]
+    assert "camera=(self)" in policy and "microphone=()" in policy
