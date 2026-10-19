@@ -55,3 +55,15 @@ document.getElementById('chat-form').addEventListener('submit', (e) => {
 document.querySelectorAll('.suggest-btn').forEach(btn => {
   btn.addEventListener('click', () => askQuestion(btn.textContent));
 });
+
+(function () {
+  const select = document.getElementById('profile-select');
+  const label = document.getElementById('chat-for');
+  function update() {
+    const opt = select.selectedOptions && select.selectedOptions[0];
+    if (opt && opt.textContent.trim()) label.textContent = opt.textContent.replace(/\s*\(.*\)\s*$/, '');
+  }
+  select.addEventListener('change', update);
+  new MutationObserver(update).observe(select, { childList: true, attributes: true, subtree: true });
+  update();
+})();

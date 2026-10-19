@@ -96,7 +96,10 @@ def _init_sqlite():
             )
         """)
 
+
+# ---------------------------------------------------------------------------
 # Profiles
+# ---------------------------------------------------------------------------
 def list_profiles(owner_id=None):
     """Public profiles (owner_id IS NULL) plus, if owner_id is given, that
     user's own private profiles."""
@@ -149,7 +152,9 @@ def delete_profile_row(profile_id):
             conn.execute("DELETE FROM profiles WHERE id = ?", (profile_id,))
 
 
+# ---------------------------------------------------------------------------
 # Users
+# ---------------------------------------------------------------------------
 def get_user_by_email(email):
     if _backend == "firestore":
         docs = list(_firestore_client.collection("users").where("email", "==", email).limit(1).stream())
@@ -181,7 +186,9 @@ def delete_user(user_id):
             conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
 
 
+# ---------------------------------------------------------------------------
 # User settings
+# ---------------------------------------------------------------------------
 def get_settings(user_id):
     if _backend == "firestore":
         doc = _firestore_client.collection("user_settings").document(user_id).get()
@@ -212,12 +219,22 @@ def delete_settings(user_id):
             conn.execute("DELETE FROM user_settings WHERE user_id = ?", (user_id,))
 
 
+# ---------------------------------------------------------------------------
 # Usage: one gallons total per household per calendar day
+# ---------------------------------------------------------------------------
+def _usage_doc(profile_id):
+    return _firestore_client.collection("usage_days").document(profile_id)
+
+
+def _firestore_days(profile_id):
+    snap = _usage_doc(profile_id).get()
+    return dict((snap.to_dict() or {}).get("days") or {}) if snap.exists else {}
+
+
 def list_usage(profile_id):
     """Returns {"YYYY-MM-DD": gallons} for one household."""
     if _backend == "firestore":
-        docs = _firestore_client.collection("usage").where("profile_id", "==", profile_id).stream()
-        return {d.to_dict()["day"]: d.to_dict()["gallons"] for d in docs}
+        return _firestore_days(profile_id)
     with sqlite3.connect(SQLITE_PATH) as conn:
         rows = conn.execute("SELECT day, gallons FROM usage WHERE profile_id = ?", (profile_id,)).fetchall()
         return {day: gallons for day, gallons in rows}
@@ -227,13 +244,9 @@ def save_usage(profile_id, entries):
     """entries: {"YYYY-MM-DD": gallons}. Adds new days and replaces existing ones."""
     with _lock:
         if _backend == "firestore":
-            col = _firestore_client.collection("usage")
-            items = list(entries.items())
-            for start in range(0, len(items), 400):
-                batch = _firestore_client.batch()
-                for day, gallons in items[start:start + 400]:
-                    batch.set(col.document(f"{profile_id}_{day}"), {"profile_id": profile_id, "day": day, "gallons": gallons})
-                batch.commit()
+            days = _firestore_days(profile_id)
+            days.update(entries)
+            _usage_doc(profile_id).set({"profile_id": profile_id, "days": days})
             return
         with sqlite3.connect(SQLITE_PATH) as conn:
             conn.executemany(
@@ -246,16 +259,16 @@ def delete_usage(profile_id, days=None):
     """Deletes the given days, or every day for the household when days is None."""
     with _lock:
         if _backend == "firestore":
-            col = _firestore_client.collection("usage")
             if days is None:
-                refs = [d.reference for d in col.where("profile_id", "==", profile_id).stream()]
+                _usage_doc(profile_id).delete()
+                return
+            existing = _firestore_days(profile_id)
+            for day in days:
+                existing.pop(day, None)
+            if existing:
+                _usage_doc(profile_id).set({"profile_id": profile_id, "days": existing})
             else:
-                refs = [col.document(f"{profile_id}_{day}") for day in days]
-            for start in range(0, len(refs), 400):
-                batch = _firestore_client.batch()
-                for ref in refs[start:start + 400]:
-                    batch.delete(ref)
-                batch.commit()
+                _usage_doc(profile_id).delete()
             return
         with sqlite3.connect(SQLITE_PATH) as conn:
             if days is None:

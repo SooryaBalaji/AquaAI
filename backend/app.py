@@ -45,6 +45,7 @@ import geocode
 import profiles
 import settings
 import storage
+import flume
 import usage
 from civic import WASTE_CATEGORIES, build_civic_report
 from config import DAYS_IN_MONTH
@@ -79,7 +80,10 @@ if IS_PRODUCTION:
     if _problems:
         raise RuntimeError("Refusing to start in production:\n- " + "\n- ".join(_problems))
 
+
+# ---------------------------------------------------------------------------
 # Auth helpers
+# ---------------------------------------------------------------------------
 @app.before_request
 def load_current_user():
     g.user = auth.user_from_auth_header(request.headers.get("Authorization"))
@@ -113,8 +117,10 @@ def require_auth():
     return g.user
 
 
+# ---------------------------------------------------------------------------
 # Structured error handling. Every error, expected or not, comes back as
-# {"error": "..."} with an appropriate status code, never a raw traceback
+# {"error": "..."} with an appropriate status code, never a raw traceback.
+# ---------------------------------------------------------------------------
 @app.errorhandler(auth.AuthError)
 def handle_auth_error(e):
     body = {"error": e.message}
@@ -174,6 +180,8 @@ def add_security_headers(response):
         response.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
     if request.path.startswith("/api/"):
         response.headers.setdefault("Cache-Control", "no-store")
+    else:
+        response.headers.setdefault("Cache-Control", "no-cache")
     return response
 
 
@@ -197,7 +205,9 @@ def legacy_app_url():
     return redirect("/app", code=301)
 
 
+# ---------------------------------------------------------------------------
 # Auth routes
+# ---------------------------------------------------------------------------
 @app.get("/api/auth/config")
 def auth_config():
     return jsonify(auth.public_config())
@@ -264,7 +274,9 @@ def update_settings_route():
     return jsonify({"settings": settings.get(user["id"])})
 
 
+# ---------------------------------------------------------------------------
 # Profiles
+# ---------------------------------------------------------------------------
 @app.get("/api/profiles")
 def list_profiles_route():
     owner_id = g.user["id"] if g.get("user") else None
@@ -319,10 +331,12 @@ def delete_profile_route(profile_id):
     return jsonify({"deleted": profile_id})
 
 
+# ---------------------------------------------------------------------------
 # Household data, scoped to the requested profile
+# ---------------------------------------------------------------------------
 def _today():
     """The caller's local date (sent by the browser as ?today=), accepted only
-    if it is within a day of the server's UTC date; otherwise the server's date"""
+    if it is within a day of the server's UTC date; otherwise the server's date."""
     server = datetime.now(timezone.utc).date()
     raw = request.args.get("today")
     if raw:
@@ -339,7 +353,7 @@ def _load_authorized_profile():
     """Returns (profile, household_data) for ?profile=<id>, checked
     against the current user's access. household_data holds the simulated
     readings for the demo household and is None for user households, whose
-    numbers come from the usage they entered. Raises AuthError on denial"""
+    numbers come from the usage they entered. Raises AuthError on denial."""
     profile_id = request.args.get("profile", profiles.DEFAULT_PROFILE_ID)
     profile = profiles.get_profile(profile_id)
     user_id = g.user["id"] if g.get("user") else None
@@ -464,7 +478,9 @@ def savings():
     return jsonify(compute_savings(f, anomaly_count, profile["household_size"]))
 
 
+# ---------------------------------------------------------------------------
 # Usage the owner enters by hand or by CSV
+# ---------------------------------------------------------------------------
 def _owned_profile(profile_id):
     user = require_auth()
     profile = profiles.get_profile(profile_id)
@@ -490,6 +506,31 @@ def put_usage():
     body = request.get_json(force=True, silent=True) or {}
     try:
         saved = usage.add_entries(profile["id"], body.get("entries"), _today())
+    except usage.UsageError as e:
+        return jsonify({"error": str(e)}), 400
+    return jsonify({"saved": saved})
+
+
+@app.post("/api/usage/flume")
+@limiter.limit("6 per hour")
+def import_flume():
+    profile = _owned_profile(request.args.get("profile", ""))
+    body = request.get_json(force=True, silent=True) or {}
+    fields = {k: str(body.get(k) or "").strip() for k in ("client_id", "client_secret", "email", "password")}
+    if not all(fields.values()):
+        return jsonify({"error": "Fill in the client ID, client secret, Flume email and Flume password."}), 400
+    try:
+        days = int(body.get("days") or 30)
+    except (TypeError, ValueError):
+        days = 30
+    today = _today()
+    try:
+        entries = flume.fetch_daily(fields["client_id"], fields["client_secret"], fields["email"], fields["password"], days, today)
+        if not entries:
+            return jsonify({"error": "Flume had no usage for that period."}), 404
+        saved = usage.add_entries(profile["id"], entries, today)
+    except flume.FlumeError as e:
+        return jsonify({"error": str(e)}), 502
     except usage.UsageError as e:
         return jsonify({"error": str(e)}), 400
     return jsonify({"saved": saved})

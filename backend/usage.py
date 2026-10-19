@@ -17,7 +17,7 @@ from config import DAYS_IN_MONTH
 
 MAX_DAILY_GALLONS = 100_000
 MAX_ENTRIES_PER_REQUEST = 1000
-MAX_ENTRIES_PER_HOUSEHOLD = 2000
+MAX_ENTRIES_PER_HOUSEHOLD = 4000
 EARLIEST_DATE = date(2000, 1, 1)
 MIN_DAYS_FOR_SCORE = 7
 
@@ -79,7 +79,9 @@ def history(profile_id, limit=400):
     return {"count": len(rows), "entries": rows[:limit]}
 
 
+# ---------------------------------------------------------------------------
 # Analytics for user households
+# ---------------------------------------------------------------------------
 def dashboard(daily, tier1_limit_gal, today):
     last7 = [round(daily.get((today - timedelta(days=6 - i)).isoformat(), 0), 1) for i in range(7)]
     return {

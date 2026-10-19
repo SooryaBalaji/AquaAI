@@ -7,6 +7,7 @@ let householdList = [];
 
 async function searchPlaces(text) {
   const res = await getJSON('/api/geocode?q=' + encodeURIComponent(text));
+  searchPlaces.expired = !!(res && res.httpStatus === 401);
   return Array.isArray(res) ? res : null;
 }
 
@@ -63,7 +64,8 @@ function householdCard(p, mine) {
   const badges = (viewing ? '<span class="hh-badge hh-badge--on">Viewing</span>' : '')
     + (mine ? '' : '<span class="hh-badge">Demo</span>');
   const actions = mine
-    ? `<button class="btn btn-quiet btn-sm" data-act="open" data-id="${esc(p.id)}" ${viewing ? 'disabled' : ''}>${viewing ? 'Open now' : 'Open'}</button>
+    ? `<button class="btn btn-sm" data-act="adddata" data-id="${esc(p.id)}">Add data</button>
+       <button class="btn btn-quiet btn-sm" data-act="open" data-id="${esc(p.id)}" ${viewing ? 'disabled' : ''}>${viewing ? 'Open now' : 'Open'}</button>
        <button class="btn btn-quiet btn-sm" data-act="edit" data-id="${esc(p.id)}">Edit</button>
        <button class="btn btn-quiet btn-sm btn-delete" data-act="delete" data-id="${esc(p.id)}">Delete</button>`
     : `<button class="btn btn-quiet btn-sm" data-act="open" data-id="${esc(p.id)}" ${viewing ? 'disabled' : ''}>${viewing ? 'Open now' : 'Open'}</button>`;
@@ -111,6 +113,11 @@ document.getElementById('hh-list').addEventListener('click', async (e) => {
     await refreshProfileList();
     await reloadAllTabs();
     document.querySelector('.rail-btn[data-tab="dashboard"]').click();
+  } else if (btn.dataset.act === 'adddata') {
+    setActiveProfile(id);
+    await refreshProfileList();
+    await reloadAllTabs();
+    document.querySelector('.rail-btn[data-tab="usage"]').click();
   } else if (btn.dataset.act === 'edit') {
     openHouseholdForm(profile);
   } else if (btn.dataset.act === 'delete') {
@@ -138,7 +145,10 @@ async function resolveCoordinates(place) {
   if (editing && place === placeLabel(editing)) return [editing.lat, editing.lon];
   if (placeResults[place]) return placeResults[place];
   const found = await searchPlaces(place);
-  if (found === null) { formError('Location search is unavailable right now. Try again in a moment.'); return null; }
+  if (found === null) {
+    formError(searchPlaces.expired ? 'Your sign-in has expired. Sign out, then sign in again.' : 'Location search is unavailable right now. Try again in a moment.');
+    return null;
+  }
   if (!found.length) { formError("Couldn't find that place. Try a city name or a 5-digit ZIP code."); return null; }
   return [found[0].lat, found[0].lon];
 }

@@ -72,6 +72,8 @@ Check what is running at http://localhost:5000/healthz. It reports the active st
 
 Usage is entered as a daily total, in gallons or CCF (1 CCF = 748.052 gallons), through the form or a CSV.
 
+**Flume meters.** The Add data page can also import daily totals from a Flume smart water meter using Flume's personal API. Create a client at portal.flumetech.com under Settings, API Access, then enter the client ID, client secret and your Flume login. AquaAI uses them for that one request and does not store them. Imports are daily totals only, so the Leak Detective still needs hourly data and does not use them. Flume limits personal clients to 120 requests an hour. Flume is optional: a CSV or manual entries are enough.
+
 ```
 date,gallons
 2026-10-15,180
@@ -80,7 +82,7 @@ date,gallons
 
 A header row is optional. Dates may be `YYYY-MM-DD` or `M/D/YYYY`. Rows that cannot be read are skipped and counted. Saving a date that already exists replaces it.
 
-Server-side limits: 0 to 100,000 gallons per day, dates from 2000-01-01 to tomorrow, 1,000 entries per request, 2,000 days per household. Only the household's owner can add or delete data. The Demo household cannot be edited.
+Server-side limits: 0 to 100,000 gallons per day, dates from 2000-01-01 to tomorrow, 1,000 entries per request, 4,000 days per household. Only the household's owner can add or delete data. The Demo household cannot be edited.
 
 ### Forecast
 
@@ -172,6 +174,7 @@ All `/api/` routes return JSON. Routes marked *household* accept `?profile=<id>`
 | `/api/savings` | GET | savings and badges *(household)* |
 | `/api/usage` | GET | list logged days *(household)* |
 | `/api/usage` | PUT | add or replace days: `{"entries": [{"date", "gallons"}]}` (owner only) |
+| `/api/usage/flume` | POST | import daily totals from Flume: `{client_id, client_secret, email, password, days}` (owner only) |
 | `/api/usage` | DELETE | `?date=YYYY-MM-DD` or `?all=true` (owner only) |
 | `/api/ask` | POST | `{"question": "..."}`, grounded answer *(household)* |
 | `/api/cnn-labels` | GET | waste categories for the browser model |
@@ -195,6 +198,7 @@ Secrets come only from the environment. Put them in `backend/.env` (one `NAME=va
 | `GEMINI_API_KEY` | live assistant answers | rule-based answers |
 | `GEMINI_MODEL` | choose the Gemini model | `gemini-3.5-flash-lite` |
 | `GEMINI_FALLBACK_MODEL` | model tried once when the main one is busy or times out | `gemini-3.8-flash` |
+| `FLUME_BASE_URL` | Flume API address (used for testing) | `https://api.flumewater.com` |
 | `GEMINI_BASE_URL` | point the assistant at a different Gemini-compatible endpoint (used for testing) | Google's API |
 | `FIREBASE_PROJECT_ID`, `FIREBASE_WEB_API_KEY`, `FIREBASE_APP_ID`, `FIREBASE_AUTH_DOMAIN` | Firebase sign-in in the browser | local accounts |
 | `FIREBASE_CREDENTIALS_PATH` or `FIREBASE_CREDENTIALS_JSON` | backend access to Firebase and Firestore | SQLite storage |

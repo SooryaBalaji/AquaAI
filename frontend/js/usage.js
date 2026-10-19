@@ -142,6 +142,30 @@ document.getElementById('csv-upload').addEventListener('click', async () => {
   await afterUsageChange();
 });
 
+document.getElementById('flume-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const val = (id) => document.getElementById(id).value.trim();
+  const body = {
+    client_id: val('flume-client-id'), client_secret: val('flume-client-secret'),
+    email: val('flume-email'), password: document.getElementById('flume-password').value,
+    days: +document.getElementById('flume-days').value,
+  };
+  if (!body.client_id || !body.client_secret || !body.email || !body.password) {
+    return usageMsg('flume-msg', 'Fill in all four fields.', true);
+  }
+  const btn = document.getElementById('flume-submit');
+  btn.disabled = true;
+  usageMsg('flume-msg', 'Contacting Flume...');
+  const res = await getJSON('/api/usage/flume', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+  });
+  btn.disabled = false;
+  if (res.error) return usageMsg('flume-msg', res.error, true);
+  ['flume-client-secret', 'flume-password'].forEach(id => { document.getElementById(id).value = ''; });
+  usageMsg('flume-msg', `Imported ${res.saved} days from Flume.`);
+  await afterUsageChange();
+});
+
 document.getElementById('usage-rows').addEventListener('click', async (e) => {
   const day = e.target.dataset && e.target.dataset.del;
   if (!day) return;

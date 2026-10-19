@@ -6,7 +6,7 @@ AquaAI runs as one web service: the Flask backend also serves the pages. In prod
 
 1. Go to https://console.firebase.google.com and add a project.
 2. Build, Authentication, Get started. Under Sign-in method, enable **Email/Password** and **Google**.
-3. Build, Firestore Database, Create database. Pick a region near your users. Open the Rules tab, paste in the contents of `firestore.rules`, and publish. This blocks all direct browser access, because only the backend reads and writes data.
+3. Build, Firestore Database, Create database. Pick us-west1 (Oregon), the region the Render service uses. This cannot be changed later. Open the Rules tab, paste in the contents of `firestore.rules`, and publish. This blocks all direct browser access, because only the backend reads and writes data.
 4. Project settings, General, Your apps, add a **Web app**. Copy `apiKey`, `appId`, `authDomain` and `projectId`. These are public identifiers, not secrets.
 5. Project settings, Service accounts, Generate new private key. This downloads a JSON file. It is a secret. Never commit it or paste it anywhere public.
 

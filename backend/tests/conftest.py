@@ -46,7 +46,7 @@ def unique_email():
 
 @pytest.fixture
 def registered_user(client, unique_email):
-    #Registers a fresh user and returns (headers, user_id, email)
+    """Registers a fresh user and returns (headers, user_id, email)."""
     r = client.post("/api/auth/register", json={"email": unique_email, "password": "password123"})
     assert r.status_code == 201, r.get_json()
     body = r.get_json()

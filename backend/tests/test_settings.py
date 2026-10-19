@@ -38,3 +38,4 @@ def test_deleting_account_removes_settings(client, registered_user):
     assert storage.get_settings(user_id) is not None
     assert client.delete("/api/account", headers=headers).status_code == 200
     assert storage.get_settings(user_id) is None
+

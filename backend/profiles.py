@@ -35,7 +35,7 @@ _cache = {}  # profile_id -> {"readings": [...], "model": ..., "anomalies": [...
 
 
 class ValidationError(Exception):
-    """Raised for bad profile input. Message is safe to show the user"""
+    """Raised for bad profile input. Message is safe to show the user."""
 
 
 def _new_profile(profile_id, owner_id, name, lat, lon, household_size, tier1_limit_gal, seed, place=None):

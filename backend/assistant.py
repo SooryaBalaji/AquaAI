@@ -28,7 +28,7 @@ DEFAULT_MODEL = "gemini-3.5-flash-lite"
 
 
 def _context_summary(ctx):
-    #Turn the app's live data into a short, factual briefing for the model
+    """Turn the app's live data into a short, factual briefing for the model."""
     if not ctx.get("has_data", True):
         return (
             "No water usage has been added for this household yet, so every number is zero. "

@@ -52,7 +52,7 @@ async function getJSON(path, opts = {}) {
   try {
     const res = await fetch(url, Object.assign({}, opts, { headers }));
     const data = await res.json().catch(() => ({ error: 'The server sent back something unreadable.' }));
-    if (!res.ok && !data.error) data.error = 'Something went wrong (' + res.status + ').';
+    if (!res.ok) { data.httpStatus = res.status; if (!data.error) data.error = 'Something went wrong (' + res.status + ').'; }
     return data;
   } catch {
     return { error: 'Could not reach the server. Check your connection and try again.' };

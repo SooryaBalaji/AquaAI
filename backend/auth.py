@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 import jwt
 from werkzeug.security import check_password_hash, generate_password_hash
 
+import firebase_client
 import storage
 
 log = logging.getLogger("aquaai.auth")
@@ -26,12 +27,23 @@ class AuthError(Exception):
         self.code = code
 
 
+_warned = False
+
+
 def provider():
+    global _warned
+    if (_PROVIDER == "firebase" and not os.environ.get("AUTH_PROVIDER")
+            and os.environ.get("APP_ENV", "development").lower() != "production" and not firebase_client._state["ready"]):
+        if not _warned:
+            _warned = True
+            log.warning("FIREBASE_WEB_API_KEY is set but Firebase is not connected (no service account). "
+                        "Using local accounts for this run.")
+        return "local"
     return _PROVIDER
 
 
 def public_config():
-    if _PROVIDER != "firebase":
+    if provider() != "firebase":
         return {"provider": "local"}
     project_id = os.environ.get("FIREBASE_PROJECT_ID", "")
     return {
@@ -56,7 +68,7 @@ def _firebase_delete(uid):
 
 
 def delete_account(user_id):
-    if _PROVIDER == "firebase":
+    if provider() == "firebase":
         _firebase_delete(user_id)
     else:
         storage.delete_user(user_id)
@@ -88,7 +100,7 @@ def _verify_local_token(token):
 def verify_token(token):
     if not token:
         return None
-    if _PROVIDER == "firebase":
+    if provider() == "firebase":
         return _verify_firebase_token(token)
     return _verify_local_token(token)
 
@@ -127,7 +139,7 @@ def login(email, password):
 
 
 def _require_local():
-    if _PROVIDER != "local":
+    if provider() != "local":
         raise AuthError("Sign in is handled by Firebase.", status=404)
 
 

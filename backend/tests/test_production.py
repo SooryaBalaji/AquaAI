@@ -186,3 +186,16 @@ def test_healthz_reports_assistant_without_secrets(client, monkeypatch):
     monkeypatch.setenv("GEMINI_API_KEY", "secret-key-xyz")
     body = client.get("/healthz").get_json()
     assert body["assistant"]["key_set"] is True and "secret-key-xyz" not in str(body)
+
+
+def test_firebase_key_without_service_account_falls_back_to_local(monkeypatch):
+    import auth
+    import firebase_client
+    monkeypatch.delenv("AUTH_PROVIDER", raising=False)
+    monkeypatch.delenv("APP_ENV", raising=False)
+    monkeypatch.setattr(auth, "_PROVIDER", "firebase")
+    monkeypatch.setattr(firebase_client, "_state", {"ready": False, "firestore": None})
+    assert auth.provider() == "local"
+    assert auth.public_config() == {"provider": "local"}
+    monkeypatch.setenv("APP_ENV", "production")
+    assert auth.provider() == "firebase"

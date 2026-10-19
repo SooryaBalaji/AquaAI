@@ -33,6 +33,9 @@
     <button class="rail-btn" data-tab="assistant" title="Ask AquaAI">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5 H20 V16 H9 L5 19.5 V16 H4 Z"/></svg>
     </button>
+    <button class="rail-btn" data-tab="usage" title="Add data">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M12 8.5v7M8.5 12h7"/></svg>
+    </button>
     <button class="rail-btn" data-tab="households" title="Households">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v10h13V10"/><path d="M10 20v-5.5h4V20"/></svg>
     </button>
@@ -40,7 +43,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
     </button>
     <div class="rail-spacer"></div>
-    <a href="landing.html" class="rail-btn" title="About AquaAI">
+    <a href="/" class="rail-btn" title="About AquaAI">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><line x1="12" y1="11" x2="12" y2="16"/><circle cx="12" cy="7.5" r="1" fill="currentColor" stroke="none"/></svg>
     </a>
   </aside>
@@ -48,7 +51,7 @@
   <div class="content-col">
     <header class="top">
       <div class="top-inner">
-        <a href="landing.html" class="wordmark"><img class="brand-logo" src="logo.svg" width="34" height="34" alt="">AquaAI</a>
+        <a href="/" class="wordmark"><img class="brand-logo" src="logo.svg" width="34" height="34" alt="">AquaAI</a>
         <div class="account-area" id="account-area">
           <button class="link-btn-light" id="signin-btn">Sign in</button>
         </div>
@@ -57,7 +60,7 @@
 
     <div class="auth-page" id="auth-form" hidden role="dialog" aria-modal="true" aria-labelledby="auth-title">
       <aside class="auth-side">
-        <a href="landing.html" class="wordmark"><img class="brand-logo" src="logo.svg" width="34" height="34" alt="">AquaAI</a>
+        <a href="/" class="wordmark"><img class="brand-logo" src="logo.svg" width="34" height="34" alt="">AquaAI</a>
         <div class="auth-side-copy">
           <h2>Know where every <em>gallon</em> goes.</h2>
           <ul>
@@ -103,7 +106,7 @@
 
     <div class="auth-page" id="verify-page" hidden role="dialog" aria-modal="true" aria-labelledby="verify-title">
       <aside class="auth-side">
-        <a href="landing.html" class="wordmark"><img class="brand-logo" src="logo.svg" width="34" height="34" alt="">AquaAI</a>
+        <a href="/" class="wordmark"><img class="brand-logo" src="logo.svg" width="34" height="34" alt="">AquaAI</a>
         <div class="auth-side-copy">
           <h2>One quick <em>step</em> left.</h2>
           <ul>
@@ -285,6 +288,7 @@
       <p>A chat assistant grounded in this household's real usage data. It answers from actual numbers, not a guess, and says plainly when it's working offline.</p>
     </div>
     <section class="block">
+      <p class="usage-for">Asking about <b id="chat-for">the selected household</b>. To ask about a different one, change the household at the top of the page.</p>
       <div class="suggested">
         <button class="suggest-btn">Why is my bill high?</button>
         <button class="suggest-btn">Do I have any leaks?</button>
@@ -299,6 +303,72 @@
         <button class="btn" type="submit">Send</button>
       </form>
     </section>
+  </section>
+
+  <section class="page" id="page-usage">
+    <div class="page-head">
+      <h2>Add data</h2>
+      <p>Log how much water a household uses. Every number in AquaAI is worked out from what you enter here. You only need one way to add data: enter days by hand, upload a CSV, or connect a Flume meter. Use more than one if you like. Days you add later replace earlier entries for the same date.</p>
+    </div>
+
+    <section class="block" id="usage-locked" hidden>
+      <div class="set-row">
+        <div class="set-text"><b id="usage-locked-title"></b><span id="usage-locked-note"></span></div>
+        <button class="btn" id="usage-locked-btn" type="button"></button>
+      </div>
+    </section>
+
+    <div id="usage-main" hidden>
+      <section class="block">
+        <h3>Enter a day</h3>
+        <p class="usage-for">Adding data for <b id="usage-for"></b></p>
+        <form class="usage-form" id="usage-form" novalidate>
+          <label class="pf-field"><span>Date</span><input type="date" id="usage-date"></label>
+          <label class="pf-field"><span>Amount used</span><input type="number" id="usage-amount" min="0" step="any" inputmode="decimal" placeholder="For example, 180"></label>
+          <label class="pf-field"><span>Unit</span>
+            <select id="usage-unit"><option value="gal">Gallons</option><option value="ccf">CCF (100 cubic feet)</option></select></label>
+          <button class="btn" id="usage-save" type="submit">Save</button>
+        </form>
+        <div class="set-msg" id="usage-msg" role="status"></div>
+        <p class="set-fine">Use the total for the whole day. You can get it from your water meter (today's reading minus yesterday's) or from your utility's online account. Bills usually list CCF, and 1 CCF is about 748 gallons. Saving a date you already entered replaces it.</p>
+      </section>
+
+      <section class="block">
+        <h3>Upload a CSV</h3>
+        <p class="set-fine" style="margin-top:0">One row per day with two columns, date then gallons, for example <code>2026-10-15,180</code>. A header row is fine. Dates can be 2026-10-15 or 10/15/2026.</p>
+        <div class="set-inline">
+          <input type="file" id="csv-file" accept=".csv,.txt,text/csv,text/plain">
+          <button class="btn" id="csv-upload" type="button" disabled>Upload</button>
+        </div>
+        <div class="set-msg" id="csv-msg" role="status"></div>
+      </section>
+
+      <section class="block">
+        <h3>Connect a Flume meter</h3>
+        <p class="set-fine" style="margin-top:0">Pulls daily totals from a Flume smart water meter. Create a personal API client at portal.flumetech.com under Settings, then API Access, and paste its client ID and secret below with your Flume login. AquaAI uses these once to fetch your usage and does not store them. Flume limits personal clients to 120 requests an hour.</p>
+        <form class="usage-form" id="flume-form" novalidate autocomplete="off">
+          <label class="pf-field"><span>Client ID</span><input type="text" id="flume-client-id" autocomplete="off"></label>
+          <label class="pf-field"><span>Client secret</span><input type="password" id="flume-client-secret" autocomplete="off"></label>
+          <label class="pf-field"><span>Flume email</span><input type="email" id="flume-email" autocomplete="off"></label>
+          <label class="pf-field"><span>Flume password</span><input type="password" id="flume-password" autocomplete="new-password"></label>
+          <label class="pf-field"><span>Days to import</span>
+            <select id="flume-days"><option value="30">Last 30 days</option><option value="90">Last 90 days</option><option value="365">Last year</option></select></label>
+          <button class="btn" id="flume-submit" type="submit">Import from Flume</button>
+        </form>
+        <div class="set-msg" id="flume-msg" role="status"></div>
+      </section>
+
+      <section class="block">
+        <div class="hh-toolbar">
+          <h3 style="margin:0">Logged days <span class="hh-count" id="usage-count"></span></h3>
+          <button class="btn btn-quiet btn-sm btn-delete" id="usage-clear" type="button" hidden>Clear all data</button>
+        </div>
+        <table>
+          <thead><tr><th>Date</th><th>Gallons</th><th></th></tr></thead>
+          <tbody id="usage-rows"></tbody>
+        </table>
+      </section>
+    </div>
   </section>
 
   <section class="page" id="page-households">
@@ -343,7 +413,7 @@
 
     <section class="block">
       <div class="hh-list" id="hh-list"></div>
-      <p class="set-fine">Usage numbers are simulated for now. Each household's water readings are generated from its size, with planted leaks for the Leak Detective to find, and the weather forecast is real. Connecting real meter data is a separate step.</p>
+      <p class="set-fine">New households start with no data, so every number is zero until you add usage on the Add data tab. Only the Demo household uses generated sample data. The weather forecast is real.</p>
     </section>
   </section>
 
@@ -435,6 +505,7 @@
 <script src="js/assistant.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/settings.js"></script>
+<script src="js/usage.js"></script>
 <script src="js/households.js"></script>
 <script src="js/profile.js"></script>
 <script src="js/filters.js"></script>
