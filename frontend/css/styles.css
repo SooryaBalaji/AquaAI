@@ -294,3 +294,12 @@ input.switch:disabled{opacity:.5;cursor:not-allowed}
 .usage-form{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
 .usage-form .pf-field{flex:1 1 150px;min-width:140px}
 .usage-form .btn{flex:0 0 auto}
+
+.bill-preview{display:block;max-width:260px;max-height:300px;margin-top:14px;border:2px solid var(--outline);border-radius:12px;object-fit:contain;background:#fff}
+.bill-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin:6px 0 24px}
+.bill-stat{border:2px solid var(--outline);border-radius:14px;padding:14px 16px;background:var(--surface)}
+.bill-stat span{display:block;font-size:12.5px;font-weight:650;color:var(--graphite)}
+.bill-stat b{display:block;margin-top:4px;font-size:22px;color:var(--ink);letter-spacing:-.02em}
+.bill-explain{font-size:15px;line-height:1.7;max-width:70ch}
+.bill-warn{margin:14px 0;padding:12px 16px;border:2px solid var(--outline);border-radius:12px;background:var(--gold-tint);color:var(--gold-ink);font-size:14px;font-weight:600}
+.bill-log{margin-top:22px}

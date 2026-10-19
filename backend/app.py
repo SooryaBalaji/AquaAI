@@ -40,6 +40,7 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 
 import assistant
 import auth
+import bill
 import checks
 import geocode
 import profiles
@@ -512,6 +513,25 @@ def put_usage():
     except usage.UsageError as e:
         return jsonify({"error": str(e)}), 400
     return jsonify({"saved": saved})
+
+
+@app.post("/api/bill")
+@limiter.limit("10 per hour;30 per day")
+def scan_bill():
+    require_auth()
+    request.max_content_length = bill.MAX_BYTES + 64 * 1024
+    upload = request.files.get("file")
+    if upload is None:
+        return jsonify({"error": "Choose a photo or PDF of the bill."}), 400
+    data = upload.read(bill.MAX_BYTES + 1)
+    if not data:
+        return jsonify({"error": "That file is empty."}), 400
+    if len(data) > bill.MAX_BYTES:
+        return jsonify({"error": "That file is too large. Keep it under 8 MB."}), 413
+    try:
+        return jsonify({"bill": bill.read_bill(data)})
+    except bill.BillError as e:
+        return jsonify({"error": e.message}), e.status
 
 
 @app.post("/api/usage/flume")

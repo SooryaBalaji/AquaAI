@@ -36,6 +36,9 @@
     <button class="rail-btn" data-tab="usage" title="Add data">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M12 8.5v7M8.5 12h7"/></svg>
     </button>
+    <button class="rail-btn" data-tab="bill" title="Bill scanner">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4"/><path d="M9 12h7M9 16h7"/></svg>
+    </button>
     <button class="rail-btn" data-tab="households" title="Households">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v10h13V10"/><path d="M10 20v-5.5h4V20"/></svg>
     </button>
@@ -371,6 +374,54 @@
     </div>
   </section>
 
+  <section class="page" id="page-bill">
+    <div class="page-head">
+      <h2>Bill scanner</h2>
+      <p>Upload a photo or PDF of your monthly water bill. AquaAI reads how much water you used, the billing dates, the tier charges and the total due, then explains the bill in plain English.</p>
+    </div>
+
+    <section class="block" id="bill-locked" hidden>
+      <div class="set-row">
+        <div class="set-text"><b>Sign in to scan a bill</b><span>Create a free account to use the bill scanner.</span></div>
+        <button class="btn" id="bill-locked-btn" type="button">Create account</button>
+      </div>
+    </section>
+
+    <div id="bill-main">
+      <section class="block">
+        <h3>Upload your bill</h3>
+        <div class="set-inline">
+          <input type="file" id="bill-file" accept="image/jpeg,image/png,image/webp,application/pdf,image/*">
+          <button class="btn" id="bill-scan" type="button" disabled>Scan bill</button>
+        </div>
+        <div class="set-inline" style="margin-top:10px">
+          <button class="btn btn-quiet" id="bill-camera-btn" type="button">Take a photo</button>
+          <input type="file" id="bill-camera" accept="image/*" capture="environment" hidden>
+        </div>
+        <img id="bill-preview" class="bill-preview" alt="Preview of the bill you chose" hidden>
+        <div class="set-msg" id="bill-msg" role="status"></div>
+        <p class="set-fine">The photo or PDF is sent to Google's Gemini to read it, and AquaAI does not keep it. Your name, address and account number are not requested, so cover them if you prefer. Photos work best when the page is flat, well lit and fills the frame. The result is read by AI, so check the numbers against your bill.</p>
+      </section>
+
+      <section class="block" id="bill-result" hidden>
+        <h3>What your bill says</h3>
+        <div class="bill-stats" id="bill-stats"></div>
+        <h3>In plain English</h3>
+        <p class="bill-explain" id="bill-explain"></p>
+        <div class="bill-warn" id="bill-warn" role="alert" hidden></div>
+        <table id="bill-tier-table" hidden>
+          <thead><tr><th>Charge</th><th>Usage</th><th>Rate</th><th>Amount</th></tr></thead>
+          <tbody id="bill-rows"></tbody>
+        </table>
+        <div class="bill-log" id="bill-log" hidden>
+          <p class="set-fine" id="bill-log-note"></p>
+          <button class="btn" id="bill-log-btn" type="button">Add this to my usage</button>
+          <div class="set-msg" id="bill-log-msg" role="status"></div>
+        </div>
+      </section>
+    </div>
+  </section>
+
   <section class="page" id="page-households">
     <div class="page-head">
       <h2>Households</h2>
@@ -506,6 +557,7 @@
 <script src="js/auth.js"></script>
 <script src="js/settings.js"></script>
 <script src="js/usage.js"></script>
+<script src="js/bill.js"></script>
 <script src="js/households.js"></script>
 <script src="js/profile.js"></script>
 <script src="js/filters.js"></script>
