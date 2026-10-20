@@ -153,3 +153,82 @@ def test_not_a_bill_route(client, registered_user, key, monkeypatch):
     headers, _, _ = registered_user
     r = upload(client, headers)
     assert r.status_code == 422 and "does not look like a water bill" in r.get_json()["error"]
+
+
+NEW = {"name": "Bill house", "lat": 37.7, "lon": -121.9, "household_size": 3, "tier1_limit_gal": 4500, "place": "Dublin, California"}
+
+
+def household(client, headers):
+    return client.post("/api/profiles", json=NEW, headers=headers).get_json()["id"]
+
+
+def cleaned():
+    return bill.clean(GOOD)
+
+
+def test_save_list_and_delete_past_bills(client, registered_user):
+    headers, _, _ = registered_user
+    pid = household(client, headers)
+    r = client.post(f"/api/bills?profile={pid}", json={"bill": cleaned()}, headers=headers)
+    assert r.status_code == 201 and r.get_json()["replaced"] == 0
+    saved_id = r.get_json()["saved"]["id"]
+    listed = client.get(f"/api/bills?profile={pid}", headers=headers).get_json()["bills"]
+    assert len(listed) == 1 and listed[0]["data"]["total_amount_due"] == 69.9 and listed[0]["id"] == saved_id
+    assert client.delete(f"/api/bills?profile={pid}&id={saved_id}", headers=headers).status_code == 200
+    assert client.get(f"/api/bills?profile={pid}", headers=headers).get_json()["bills"] == []
+
+
+def test_same_billing_period_replaces(client, registered_user):
+    headers, _, _ = registered_user
+    pid = household(client, headers)
+    client.post(f"/api/bills?profile={pid}", json={"bill": cleaned()}, headers=headers)
+    second = client.post(f"/api/bills?profile={pid}", json={"bill": cleaned()}, headers=headers)
+    assert second.get_json()["replaced"] == 1
+    assert len(client.get(f"/api/bills?profile={pid}", headers=headers).get_json()["bills"]) == 1
+
+
+def test_saved_values_are_rechecked_by_the_server(client, registered_user):
+    headers, _, _ = registered_user
+    pid = household(client, headers)
+    tampered = {**cleaned(), "total_amount_due": "free", "usage_gallons": 999999999, "explanation": "<script>x</script>", "utility_name": "x" * 500}
+    r = client.post(f"/api/bills?profile={pid}", json={"bill": tampered}, headers=headers)
+    data = r.get_json()["saved"]["data"]
+    assert data["total_amount_due"] is None and data["usage_gallons"] == pytest.approx(4488.3, abs=0.1)
+    assert "script" not in data["explanation"] and len(data["utility_name"]) <= 80
+
+
+def test_bills_are_private_to_the_owner(client, registered_user):
+    headers, _, _ = registered_user
+    pid = household(client, headers)
+    client.post(f"/api/bills?profile={pid}", json={"bill": cleaned()}, headers=headers)
+    assert client.post(f"/api/bills?profile={pid}", json={"bill": cleaned()}).status_code == 401
+    assert client.post("/api/bills?profile=demo", json={"bill": cleaned()}, headers=headers).status_code == 403
+    assert client.get("/api/bills?profile=demo", headers=headers).get_json() == {"bills": []}
+
+
+def test_bad_bill_payload(client, registered_user):
+    headers, _, _ = registered_user
+    pid = household(client, headers)
+    assert client.post(f"/api/bills?profile={pid}", json={"bill": "nope"}, headers=headers).status_code == 400
+    assert client.post(f"/api/bills?profile={pid}", json={}, headers=headers).status_code == 400
+    assert client.delete(f"/api/bills?profile={pid}", headers=headers).status_code == 400
+
+
+def test_deleting_household_removes_its_bills(client, registered_user):
+    import storage
+    headers, _, _ = registered_user
+    pid = household(client, headers)
+    client.post(f"/api/bills?profile={pid}", json={"bill": cleaned()}, headers=headers)
+    assert client.delete(f"/api/profiles/{pid}", headers=headers).status_code in (200, 204)
+    assert storage.list_bills(pid) == []
+
+
+def test_bill_limit_per_household(client, registered_user, monkeypatch):
+    headers, _, _ = registered_user
+    monkeypatch.setattr(bill, "MAX_SAVED_BILLS", 2)
+    pid = household(client, headers)
+    for month in ("01", "02"):
+        raw = {**GOOD, "billing_period_start": f"2026-{month}-01", "billing_period_end": f"2026-{month}-28"}
+        assert client.post(f"/api/bills?profile={pid}", json={"bill": bill.clean(raw)}, headers=headers).status_code == 201
+    raw = {**GOOD, "billing_period_start": "2026-03-01", "billing_period_end": "2026-03-28"}
+    assert client.post(f"/api/bills?profile={pid}", json={"bill": bill.clean(raw)}, headers=headers).status_code == 400

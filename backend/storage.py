@@ -90,6 +90,15 @@ def _init_sqlite():
             )
         """)
         conn.execute("""
+            CREATE TABLE IF NOT EXISTS bills (
+                profile_id TEXT NOT NULL,
+                bill_id TEXT NOT NULL,
+                created TEXT NOT NULL,
+                data TEXT NOT NULL,
+                PRIMARY KEY (profile_id, bill_id)
+            )
+        """)
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS user_settings (
                 user_id TEXT PRIMARY KEY,
                 data TEXT NOT NULL
@@ -275,3 +284,62 @@ def delete_usage(profile_id, days=None):
                 conn.execute("DELETE FROM usage WHERE profile_id = ?", (profile_id,))
             else:
                 conn.executemany("DELETE FROM usage WHERE profile_id = ? AND day = ?", [(profile_id, d) for d in days])
+
+
+# ---------------------------------------------------------------------------
+# Past bills: the values read from each scanned bill, never the photo
+# ---------------------------------------------------------------------------
+def _bills_doc(profile_id):
+    return _firestore_client.collection("bills").document(profile_id)
+
+
+def list_bills(profile_id):
+    """Returns [{"id", "created", "data"}], newest first."""
+    if _backend == "firestore":
+        snap = _bills_doc(profile_id).get()
+        items = (snap.to_dict() or {}).get("items") or {} if snap.exists else {}
+        rows = [{"id": k, "created": v["created"], "data": v["data"]} for k, v in items.items()]
+    else:
+        with sqlite3.connect(SQLITE_PATH) as conn:
+            found = conn.execute("SELECT bill_id, created, data FROM bills WHERE profile_id = ?", (profile_id,)).fetchall()
+        rows = [{"id": i, "created": c, "data": json.loads(d)} for i, c, d in found]
+    return sorted(rows, key=lambda r: r["created"], reverse=True)
+
+
+def save_bill(profile_id, bill_id, created, data, replace_ids=()):
+    with _lock:
+        if _backend == "firestore":
+            snap = _bills_doc(profile_id).get()
+            items = dict((snap.to_dict() or {}).get("items") or {}) if snap.exists else {}
+            for old in replace_ids:
+                items.pop(old, None)
+            items[bill_id] = {"created": created, "data": data}
+            _bills_doc(profile_id).set({"profile_id": profile_id, "items": items})
+            return
+        with sqlite3.connect(SQLITE_PATH) as conn:
+            conn.executemany("DELETE FROM bills WHERE profile_id = ? AND bill_id = ?", [(profile_id, o) for o in replace_ids])
+            conn.execute(
+                "INSERT OR REPLACE INTO bills (profile_id, bill_id, created, data) VALUES (?, ?, ?, ?)",
+                (profile_id, bill_id, created, json.dumps(data)),
+            )
+
+
+def delete_bills(profile_id, bill_id=None):
+    with _lock:
+        if _backend == "firestore":
+            if bill_id is None:
+                _bills_doc(profile_id).delete()
+                return
+            snap = _bills_doc(profile_id).get()
+            items = dict((snap.to_dict() or {}).get("items") or {}) if snap.exists else {}
+            items.pop(bill_id, None)
+            if items:
+                _bills_doc(profile_id).set({"profile_id": profile_id, "items": items})
+            else:
+                _bills_doc(profile_id).delete()
+            return
+        with sqlite3.connect(SQLITE_PATH) as conn:
+            if bill_id is None:
+                conn.execute("DELETE FROM bills WHERE profile_id = ?", (profile_id,))
+            else:
+                conn.execute("DELETE FROM bills WHERE profile_id = ? AND bill_id = ?", (profile_id, bill_id))

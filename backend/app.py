@@ -26,6 +26,7 @@ import os
 import sys
 import threading
 import traceback
+import uuid
 
 from dotenv import load_dotenv
 
@@ -82,7 +83,9 @@ if IS_PRODUCTION:
         raise RuntimeError("Refusing to start in production:\n- " + "\n- ".join(_problems))
 
 
+# ---------------------------------------------------------------------------
 # Auth helpers
+# ---------------------------------------------------------------------------
 @app.before_request
 def load_current_user():
     g.user = auth.user_from_auth_header(request.headers.get("Authorization"))
@@ -116,8 +119,10 @@ def require_auth():
     return g.user
 
 
+# ---------------------------------------------------------------------------
 # Structured error handling. Every error, expected or not, comes back as
 # {"error": "..."} with an appropriate status code, never a raw traceback.
+# ---------------------------------------------------------------------------
 @app.errorhandler(auth.AuthError)
 def handle_auth_error(e):
     body = {"error": e.message}
@@ -205,7 +210,9 @@ def legacy_app_url():
     return redirect("/app", code=301)
 
 
+# ---------------------------------------------------------------------------
 # Auth routes
+# ---------------------------------------------------------------------------
 @app.get("/api/auth/config")
 def auth_config():
     return jsonify(auth.public_config())
@@ -272,7 +279,9 @@ def update_settings_route():
     return jsonify({"settings": settings.get(user["id"])})
 
 
+# ---------------------------------------------------------------------------
 # Profiles
+# ---------------------------------------------------------------------------
 @app.get("/api/profiles")
 def list_profiles_route():
     owner_id = g.user["id"] if g.get("user") else None
@@ -327,7 +336,9 @@ def delete_profile_route(profile_id):
     return jsonify({"deleted": profile_id})
 
 
+# ---------------------------------------------------------------------------
 # Household data, scoped to the requested profile
+# ---------------------------------------------------------------------------
 def _today():
     """The caller's local date (sent by the browser as ?today=), accepted only
     if it is within a day of the server's UTC date; otherwise the server's date."""
@@ -472,7 +483,9 @@ def savings():
     return jsonify(compute_savings(f, anomaly_count, profile["household_size"]))
 
 
+# ---------------------------------------------------------------------------
 # Usage the owner enters by hand or by CSV
+# ---------------------------------------------------------------------------
 def _owned_profile(profile_id):
     user = require_auth()
     profile = profiles.get_profile(profile_id)
@@ -520,6 +533,48 @@ def scan_bill():
         return jsonify({"bill": bill.read_bill(data)})
     except bill.BillError as e:
         return jsonify({"error": e.message}), e.status
+
+
+@app.get("/api/bills")
+def list_bills_route():
+    profile, household = _load_authorized_profile()
+    if household is not None:
+        return jsonify({"bills": []})
+    return jsonify({"bills": storage.list_bills(profile["id"])})
+
+
+@app.post("/api/bills")
+@limiter.limit("60 per hour")
+def save_bill_route():
+    profile = _owned_profile(request.args.get("profile", ""))
+    body = request.get_json(force=True, silent=True) or {}
+    try:
+        data = bill.prepare_for_saving(body.get("bill"))
+    except bill.BillError as e:
+        return jsonify({"error": e.message}), e.status
+    existing = storage.list_bills(profile["id"])
+    same = [b["id"] for b in existing if (b["data"].get("billing_period_start"), b["data"].get("billing_period_end"))
+            == (data["billing_period_start"], data["billing_period_end"]) and data["billing_period_start"]]
+    if len(existing) - len(same) >= bill.MAX_SAVED_BILLS:
+        return jsonify({"error": f"You can keep up to {bill.MAX_SAVED_BILLS} past bills per household. Delete one to add another."}), 400
+    bill_id = uuid.uuid4().hex[:12]
+    created = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    storage.save_bill(profile["id"], bill_id, created, data, replace_ids=same)
+    return jsonify({"saved": {"id": bill_id, "created": created, "data": data}, "replaced": len(same)}), 201
+
+
+@app.delete("/api/bills")
+@limiter.limit("60 per hour")
+def delete_bill_route():
+    profile = _owned_profile(request.args.get("profile", ""))
+    bill_id = request.args.get("id", "")
+    if request.args.get("all") == "true":
+        storage.delete_bills(profile["id"])
+        return jsonify({"cleared": True})
+    if not bill_id:
+        return jsonify({"error": "Choose a bill to delete."}), 400
+    storage.delete_bills(profile["id"], bill_id)
+    return jsonify({"deleted": bill_id})
 
 
 @app.post("/api/usage/flume")

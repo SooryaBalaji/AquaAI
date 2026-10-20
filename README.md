@@ -68,6 +68,10 @@ Check what is running at http://localhost:5000/healthz. It reports the active st
 
 ## How it works
 
+### Bill scanner
+
+The Bill scanner tab reads a photo or PDF of a monthly water bill with Gemini and shows the water used, the billing dates, the tier and other charges and the total due, followed by a plain-English explanation. The explanation is written by the app from the values that were read, and the app checks that the charges add up to the total and warns if they do not. The file is sent to Gemini and is not stored. A bill gives only a total for the period, so adding it to a household's usage spreads the water evenly across the billing days, and the page says these days are estimates. It needs `GEMINI_API_KEY`. Photos are resized in the browser before upload. Accuracy depends on how clear the photo is and on the bill's layout, so check the numbers against your bill. Press Save to past bills to keep what was read from a scan in the household's history, where it can be viewed again or deleted. The photo is never saved, only the extracted values, and a household keeps up to 60 bills. `sample_water_bill.png` is a made-up bill for trying it.
+
 ### Add data
 
 Usage is entered as a daily total, in gallons or CCF (1 CCF = 748.052 gallons), through the form or a CSV.
@@ -175,6 +179,8 @@ All `/api/` routes return JSON. Routes marked *household* accept `?profile=<id>`
 | `/api/usage` | GET | list logged days *(household)* |
 | `/api/usage` | PUT | add or replace days: `{"entries": [{"date", "gallons"}]}` (owner only) |
 | `/api/usage/flume` | POST | import daily totals from Flume: `{client_id, client_secret, email, password, days}` (owner only) |
+| `/api/bill` | POST | multipart `file` (JPG, PNG, WebP or PDF, up to 8 MB): read a water bill and explain it (signed in; 10 per hour) |
+| `/api/bills` | GET, POST, DELETE | list, save or delete a household's past bills; POST sends `{"bill": ...}` and DELETE takes `?id=` or `?all=true` (owner only) |
 | `/api/usage` | DELETE | `?date=YYYY-MM-DD` or `?all=true` (owner only) |
 | `/api/ask` | POST | `{"question": "..."}`, grounded answer *(household)* |
 | `/api/cnn-labels` | GET | waste categories for the browser model |

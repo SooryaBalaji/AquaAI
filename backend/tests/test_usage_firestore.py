@@ -80,3 +80,23 @@ def test_households_are_separate(fs):
     storage.save_usage("a", {"2026-10-01": 1.0})
     storage.save_usage("b", {"2026-10-01": 9.0})
     assert storage.list_usage("a") == {"2026-10-01": 1.0}
+
+
+class BillClient(Client):
+    def collection(self, name):
+        assert name in ("usage_days", "bills")
+        return Col(self.store.setdefault(name, {}) if name == "bills" else self.store)
+
+
+def test_bills_use_one_document_per_household(monkeypatch):
+    client = BillClient()
+    monkeypatch.setattr(storage, "_backend", "firestore")
+    monkeypatch.setattr(storage, "_firestore_client", client)
+    storage.save_bill("p1", "a", "2026-10-01T00:00:00", {"total": 1})
+    storage.save_bill("p1", "b", "2026-10-02T00:00:00", {"total": 2})
+    storage.save_bill("p1", "c", "2026-10-03T00:00:00", {"total": 3}, replace_ids=["a"])
+    assert [b["id"] for b in storage.list_bills("p1")] == ["c", "b"]
+    storage.delete_bills("p1", "b")
+    assert [b["id"] for b in storage.list_bills("p1")] == ["c"]
+    storage.delete_bills("p1")
+    assert storage.list_bills("p1") == []

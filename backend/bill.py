@@ -286,3 +286,33 @@ def explain(b):
         tail += f", payable by {b['due_date']}." if b["due_date"] else "."
         lines.append(tail)
     return " ".join(lines)
+
+
+MAX_SAVED_BILLS = 60
+
+
+def to_raw(saved):
+    if not isinstance(saved, dict):
+        raise BillError("That bill could not be saved.")
+    return {
+        "is_water_bill": True,
+        "utility_name": saved.get("utility_name"),
+        "billing_period_start": saved.get("billing_period_start"),
+        "billing_period_end": saved.get("billing_period_end"),
+        "due_date": saved.get("due_date"),
+        "usage_amount": saved.get("usage_amount"),
+        "usage_unit": saved.get("usage_unit"),
+        "tiers": [
+            {k: t.get(k) for k in ("name", "usage_amount", "rate_per_unit", "charge")}
+            for t in (saved.get("tiers") or [])[:20] if isinstance(t, dict)
+        ],
+        "other_charges": [
+            {k: c.get(k) for k in ("name", "amount")}
+            for c in (saved.get("other_charges") or [])[:30] if isinstance(c, dict)
+        ],
+        "total_amount_due": saved.get("total_amount_due"),
+    }
+
+
+def prepare_for_saving(saved):
+    return clean(to_raw(saved))

@@ -174,6 +174,7 @@ def delete_profile(profile_id, owner_id):
         return False
     storage.delete_profile_row(profile_id)
     storage.delete_usage(profile_id)
+    storage.delete_bills(profile_id)
     _cache.pop(profile_id, None)
     return True
 
@@ -185,6 +186,7 @@ def delete_all_for_owner(owner_id):
     for p in owned:
         storage.delete_profile_row(p["id"])
         storage.delete_usage(p["id"])
+        storage.delete_bills(p["id"])
         _cache.pop(p["id"], None)
     return len(owned)
 

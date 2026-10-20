@@ -12,7 +12,7 @@ async function refreshProfileList() {
 }
 
 async function reloadAllTabs() {
-  await Promise.all([loadDashboard(), loadLeaks(), loadForecast(), loadSettings(), loadUsage()]);
+  await Promise.all([loadDashboard(), loadLeaks(), loadForecast(), loadSettings(), loadUsage(), loadBills()]);
 }
 
 function updateProfileBarForAuthState() {

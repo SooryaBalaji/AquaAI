@@ -420,11 +420,26 @@
           <thead><tr><th>Charge</th><th>Usage</th><th>Rate</th><th>Amount</th></tr></thead>
           <tbody id="bill-rows"></tbody>
         </table>
+        <div class="bill-log" id="bill-save">
+          <button class="btn" id="bill-save-btn" type="button">Save to past bills</button>
+          <div class="set-msg" id="bill-save-msg" role="status"></div>
+        </div>
         <div class="bill-log" id="bill-log" hidden>
           <p class="set-fine" id="bill-log-note"></p>
           <button class="btn" id="bill-log-btn" type="button">Add this to my usage</button>
           <div class="set-msg" id="bill-log-msg" role="status"></div>
         </div>
+      </section>
+
+      <section class="block" id="bill-history">
+        <div class="hh-toolbar">
+          <h3 style="margin:0">Past bills <span class="hh-count" id="bill-count"></span></h3>
+        </div>
+        <p class="set-fine" id="bill-history-note">Saved bills show what was read from each scan, not the photo.</p>
+        <table>
+          <thead><tr><th>Billing period</th><th>Water used</th><th>Total due</th><th></th></tr></thead>
+          <tbody id="bill-history-rows"></tbody>
+        </table>
       </section>
     </div>
   </section>

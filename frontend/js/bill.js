@@ -174,6 +174,9 @@ function showBill(b) {
   document.getElementById('bill-tier-table').hidden = !rows.length;
   document.getElementById('bill-rows').innerHTML = rows.join('');
 
+  document.getElementById('bill-save').hidden = false;
+  billMsg('bill-save-msg', '');
+  document.getElementById('bill-save-btn').disabled = false;
   const logBox = document.getElementById('bill-log');
   logBox.hidden = !b.can_log;
   billMsg('bill-log-msg', '');
@@ -213,3 +216,59 @@ document.getElementById('bill-log-btn').addEventListener('click', async () => {
 });
 
 billLock();
+
+async function ownHousehold() {
+  if (!isSignedIn()) return null;
+  const list = await getJSON('/api/profiles');
+  const cur = Array.isArray(list) ? list.find(p => p.id === currentProfileId) : null;
+  return cur && cur.owner_id === currentUser.id ? cur : null;
+}
+
+async function loadBills() {
+  const rows = document.getElementById('bill-history-rows');
+  const own = await ownHousehold();
+  document.getElementById('bill-history').hidden = !own;
+  if (!own) return;
+  const res = await getJSON('/api/bills');
+  if (res.error) { rows.innerHTML = `<tr><td colspan="4">${esc(res.error)}</td></tr>`; return; }
+  const bills = res.bills || [];
+  document.getElementById('bill-count').textContent = bills.length ? `(${bills.length})` : '';
+  rows.innerHTML = bills.length
+    ? bills.map(b => {
+        const d = b.data;
+        const period = d.billing_period_start ? `${d.billing_period_start} to ${d.billing_period_end}` : 'Saved ' + b.created.slice(0, 10);
+        return `<tr><td>${esc(period)}</td><td>${d.usage_gallons === null ? '' : esc(billNum(d.usage_gallons)) + ' gal'}</td><td>${esc(billMoney(d.total_amount_due))}</td>
+          <td><button class="btn btn-quiet btn-sm" data-view="${esc(b.id)}" type="button">View</button>
+          <button class="btn btn-quiet btn-sm btn-delete" data-del-bill="${esc(b.id)}" type="button">Delete</button></td></tr>`;
+      }).join('')
+    : '<tr><td colspan="4"><p class="empty-note">No saved bills yet. Scan a bill, then press Save to past bills.</p></td></tr>';
+  rows.dataset.bills = JSON.stringify(bills);
+}
+
+document.getElementById('bill-save-btn').addEventListener('click', async () => {
+  if (!scannedBill) return;
+  const own = await ownHousehold();
+  if (!own) return billMsg('bill-save-msg', 'Choose one of your own households at the top of the page first. The Demo household cannot save bills.', true);
+  const btn = document.getElementById('bill-save-btn');
+  btn.disabled = true;
+  const res = await getJSON('/api/bills', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bill: scannedBill }),
+  });
+  if (res.error) { btn.disabled = false; return billMsg('bill-save-msg', res.error, true); }
+  billMsg('bill-save-msg', res.replaced ? `Saved to ${own.name}. This replaced an earlier save for the same billing period.` : `Saved to ${own.name}.`);
+  await loadBills();
+});
+
+document.getElementById('bill-history-rows').addEventListener('click', async (e) => {
+  const view = e.target.dataset && e.target.dataset.view;
+  const del = e.target.dataset && e.target.dataset.delBill;
+  if (view) {
+    const bills = JSON.parse(document.getElementById('bill-history-rows').dataset.bills || '[]');
+    const found = bills.find(b => b.id === view);
+    if (found) { showBill(found.data); document.getElementById('bill-result').scrollIntoView({ behavior: 'smooth' }); }
+  } else if (del) {
+    const res = await getJSON('/api/bills?id=' + encodeURIComponent(del), { method: 'DELETE' });
+    if (res.error) return billMsg('bill-msg', res.error, true);
+    await loadBills();
+  }
+});

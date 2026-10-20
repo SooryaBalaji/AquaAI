@@ -5,7 +5,7 @@ let authToken = localStorage.getItem('aquaai_token') || null;
 let currentUser = null;
 let tokenProvider = null;
 
-const PROFILE_SCOPED_PATHS = ['/api/dashboard', '/api/anomalies', '/api/forecast', '/api/score', '/api/savings', '/api/ask', '/api/usage'];
+const PROFILE_SCOPED_PATHS = ['/api/dashboard', '/api/anomalies', '/api/forecast', '/api/score', '/api/savings', '/api/ask', '/api/usage', '/api/bills'];
 
 function esc(value) {
   return String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
