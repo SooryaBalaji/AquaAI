@@ -189,7 +189,7 @@
 <div class="stat-band">
   <div class="container stat-strip">
     <div class="stat"><div class="v">3</div><div class="l">distinct AI techniques, each doing real work</div></div>
-    <div class="stat"><div class="v">5,760</div><div class="l">readings trained per household</div></div>
+    <div class="stat"><div class="v">5,760</div><div class="l">15 minute readings in the Demo household</div></div>
     <div class="stat"><div class="v">60 days</div><div class="l">of simulated usage history</div></div>
     <div class="stat"><div class="v">$0</div><div class="l">to install and run locally</div></div>
   </div>
@@ -252,7 +252,7 @@
       </div>
       <div class="standard">
         <h3>Works with zero setup</h3>
-        <p>Runs on a local SQLite database by default. A cloud database is available if configured, but nothing depends on it.</p>
+        <p>Run it locally with no accounts or keys and it uses a local SQLite database. The hosted site uses Firebase for sign-in and Firestore for storage.</p>
       </div>
     </div>
   </section>
@@ -270,7 +270,7 @@
       </details>
       <details class="faq-item">
         <summary>Is my account and data secure?<span class="plus">+</span></summary>
-        <p>Passwords are hashed, never stored in plain text, and sessions use signed tokens. Worth knowing plainly: there is no password reset flow or login rate limiting yet. That is a reasonable scope for a student submission, not a claim of enterprise grade security.</p>
+        <p>On the hosted site, sign-in is handled by Firebase Authentication, so AquaAI never sees or stores your password, and password reset is available from the sign-in form. Sign-in, sign-up and the heavier features such as the assistant and the bill scanner are rate limited. Bill photos are sent to Google's Gemini to be read and are not stored, only the values read from them if you choose to save a bill. This is a student project, not a claim of enterprise grade security.</p>
       </details>
       <details class="faq-item">
         <summary>Can I add my own household?<span class="plus">+</span></summary>
