@@ -200,11 +200,11 @@
 
   <section class="section" id="product">
     <h2 class="section-heading">One story, <em>four tools</em></h2>
-    <p class="body-copy">Spot the leak, see the cost, get the fix, report public waste. Every household gets its own trained model.</p>
+    <p class="body-copy">Spot the leak, see the cost, get the fix, report public waste. Each household is compared with its own normal, not one shared rule.</p>
     <div class="capabilities">
       <div class="capability">
         <h3>Leak Detective</h3>
-        <div><p>An Isolation Forest trained on this household's own 15 minute usage history flags what is abnormal for that household, not a fixed gallons per minute rule.</p><span class="tag">scikit-learn</span></div>
+        <div><p>On the Demo household, an Isolation Forest trained on its own 15 minute readings flags what is abnormal for that home, not a fixed gallons per minute rule. Households you create have daily totals, so they get a check for unusually high days against their own recent normal.</p><span class="tag">scikit-learn</span></div>
       </div>
       <div class="capability">
         <h3>Forecast and Savings</h3>
@@ -239,12 +239,12 @@
     <p class="body-copy">Plain claims, backed by what is really running underneath.</p>
     <div class="standards">
       <div class="standard">
-        <h3>Trained fresh per household</h3>
-        <p>Every household gets its own seed, its own simulated meter history, and its own trained Isolation Forest, not one shared model.</p>
+        <h3>Checked against its own normal</h3>
+        <p>The Demo household has its own simulated meter history and its own trained Isolation Forest. Households you create start empty and are compared with their own recent usage.</p>
       </div>
       <div class="standard">
-        <h3>Photos never leave the device</h3>
-        <p>The Report Waste classifier runs entirely in the browser. No image is ever uploaded anywhere.</p>
+        <h3>Report Waste photos stay on your device</h3>
+        <p>The Report Waste classifier runs entirely in the browser, so those photos are never uploaded. The Bill scanner is different: it sends your bill photo to Google's Gemini to read it, and AquaAI does not store the photo.</p>
       </div>
       <div class="standard">
         <h3>Real weather, real math</h3>
@@ -252,7 +252,7 @@
       </div>
       <div class="standard">
         <h3>Works with zero setup</h3>
-        <p>Run it locally with no accounts or keys and it uses a local SQLite database. The hosted site uses Firebase for sign-in and Firestore for storage.</p>
+        <p>AquaAI uses Firestore in production and SQLite in local development. Run it on your own computer with no accounts or keys and it stores everything in a local SQLite file. The hosted site uses Firebase for sign-in and Firestore for storage.</p>
       </div>
     </div>
   </section>
@@ -262,7 +262,7 @@
     <div class="faq-list">
       <details class="faq-item">
         <summary>Is the water usage data real?<span class="plus">+</span></summary>
-        <p>No, and this is stated plainly in the app. Household meter readings are simulated with realistic daily and weekly patterns, since a live feed would require a utility partnership. The AI models trained on that data, the weather forecast, and the photo classifier are all real.</p>
+        <p>For the Demo household, no, and this is stated plainly in the app: its meter readings are simulated with realistic daily and weekly patterns, since a live feed would require a utility partnership. For households you create, the data is whatever you add: daily totals by hand or CSV, an import from a Flume meter, or a scanned water bill. The models, the weather forecast and the photo classifier are all real.</p>
       </details>
       <details class="faq-item">
         <summary>Why these AI models and not something flashier?<span class="plus">+</span></summary>

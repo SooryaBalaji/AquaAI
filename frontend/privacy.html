@@ -30,6 +30,8 @@
   <ul>
     <li>Your email address and sign in details, held by Firebase Authentication, a Google service. We never see your password.</li>
     <li>The households you create: a name, a city location, household size, and a monthly gallon limit.</li>
+    <li>The daily water usage you add to a household, by hand, from a CSV, from a Flume meter import, or from a scanned bill.</li>
+    <li>If you choose Save to past bills, the values read from a bill, such as the dates, usage and charges. The photo of the bill is never saved.</li>
   </ul>
 
   <h2>What leaves AquaAI</h2>
@@ -37,12 +39,14 @@
     <li>Questions you type into Ask AquaAI, plus that household's usage numbers, are sent to Google's Gemini service to write an answer.</li>
     <li>A household's coordinates are sent to the National Weather Service to get a forecast.</li>
     <li>Photos you choose in Report Waste are analyzed in your browser. They are never uploaded.</li>
+    <li>A photo or PDF you choose in the Bill scanner is sent to Google's Gemini service so it can be read. AquaAI does not keep it. Cover your name, address and account number if you prefer.</li>
+    <li>If you import from a Flume meter, your Flume details are sent to Flume to fetch your usage. AquaAI does not store them.</li>
   </ul>
 
   <h2>What we do not do</h2>
   <ul>
     <li>No advertising, no tracking cookies, and no selling or sharing data for marketing.</li>
-    <li>The meter readings you see are simulated, not collected from your home.</li>
+    <li>The Demo household's meter readings are simulated. Households you create show only the usage you add.</li>
   </ul>
 
   <h2>Your data</h2>
